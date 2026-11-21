@@ -75,10 +75,15 @@ def init_db() -> None:
                 topic_id INTEGER REFERENCES topics(id) ON DELETE SET NULL,
                 title TEXT NOT NULL,
                 situation TEXT NOT NULL,
-                started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+                started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                review TEXT
             )
             """
         )
+        # `review` (JSON, written when a conversation is wrapped up) was added after the first
+        # conversations were saved.
+        if "review" not in [column["name"] for column in conn.execute("PRAGMA table_info(conversations)")]:
+            conn.execute("ALTER TABLE conversations ADD COLUMN review TEXT")
         # One line of a conversation, in the order they were said. The delivery columns and the
         # correction columns are filled for the learner's lines only.
         conn.execute(

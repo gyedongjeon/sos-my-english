@@ -42,3 +42,18 @@ def test_a_mistake_is_corrected_and_explained_in_the_chosen_language(client):
 def test_missing_punctuation_is_not_corrected(client):
     # Correct when spoken; only the transcript lacks the comma and the question mark.
     assert reply_to(client, "I'm good and you")["correction"] is None
+
+
+def test_a_review_is_written_in_the_chosen_language_with_english_phrases(client):
+    client.put("/api/settings", json={"feedback_language": "Korean"})
+    conversation = client.post("/api/conversations", json={"topic_id": 1}).json()
+    for said in ("it was busy but good I had many meeting", "yesterday I go to the beach with my friend"):
+        client.post(f"/api/conversations/{conversation['id']}/messages", json={"text": said})
+        assert client.post(f"/api/conversations/{conversation['id']}/reply").status_code == 200
+    response = client.post(f"/api/conversations/{conversation['id']}/review")
+    assert response.status_code == 200, response.text
+    review = response.json()
+    assert re.search("[가-힣]", review["summary"])
+    # Both lines have a mistake, so there is something to work on.
+    assert review["focus"] and all(re.search("[가-힣]", item) for item in review["focus"])
+    assert all(phrase["english"].strip() and not re.search("[가-힣]", phrase["english"]) for phrase in review["phrases"])

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from .conversation import Correction, Message, TutorReply, tutor_reply
 from .db import get_connection
 from .llm import LLMError
+from .review import Review, write_review
 
 router = APIRouter(prefix="/api")
 
@@ -38,6 +39,8 @@ class Conversation(BaseModel):
     situation: str
     started_at: str
     messages: list[SavedMessage]
+    # Written when the learner wraps the conversation up; None until then.
+    review: Review | None = None
 
 
 class ConversationSummary(BaseModel):
@@ -82,7 +85,8 @@ def _load(conn: sqlite3.Connection, conversation_id: int) -> Conversation:
     if found is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
     rows = conn.execute("SELECT * FROM messages WHERE conversation_id = ? ORDER BY id", (conversation_id,)).fetchall()
-    return Conversation(**dict(found), messages=[_message(row) for row in rows])
+    review = Review.model_validate_json(found["review"]) if found["review"] else None
+    return Conversation(**{**dict(found), "review": review}, messages=[_message(row) for row in rows])
 
 
 @router.get("/conversations", response_model=list[ConversationSummary])
@@ -153,6 +157,8 @@ def say(conversation_id: int, body: SayRequest) -> SavedMessage:
                 delivery.words_per_minute if delivery else None,
             ),
         )
+        # A review covers the conversation as it was; it is asked for again after more is said.
+        conn.execute("UPDATE conversations SET review = NULL WHERE id = ?", (conversation_id,))
     return SavedMessage(role="learner", text=body.text, delivery=delivery)
 
 
@@ -182,3 +188,21 @@ def reply(conversation_id: int) -> TutorReply:
             "INSERT INTO messages (conversation_id, role, text) VALUES (?, 'tutor', ?)", (conversation_id, result.reply)
         )
     return result
+
+
+@router.post("/conversations/{conversation_id}/review", response_model=Review)
+def review(conversation_id: int) -> Review:
+    """Wrap a conversation up: a review of how it went, saved with it."""
+    with get_connection() as conn:
+        saved = _load(conn, conversation_id)
+    if all(m.role != "learner" for m in saved.messages):
+        raise HTTPException(status_code=409, detail="Nothing was said in this conversation yet.")
+    try:
+        written = write_review(saved.situation, [(m.role, m.text, m.correction) for m in saved.messages])
+    except LLMError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE conversations SET review = ? WHERE id = ?", (written.model_dump_json(), conversation_id)
+        )
+    return written
