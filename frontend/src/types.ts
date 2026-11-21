@@ -80,12 +80,18 @@ export interface ConversationSummary {
   corrections: number
 }
 
-/** A correction made in a saved conversation, and how often it was practised since. */
+/**
+ * A sentence to practise again: a correction made in a saved conversation, or a sentence got
+ * wrong in pattern practice.
+ */
 export interface SavedCorrection {
-  /** The id of the learner's line it was made on. */
-  id: number
-  conversation_id: number
+  id: string
+  /** Where it comes from: one of the two is set. `title` is the conversation's or the pattern's. */
+  conversation_id: number | null
+  pattern_id: string | null
   title: string
+  /** For a pattern mistake: the sentence that was to be said in English. */
+  prompt: string | null
   original: string
   improved: string
   explanation: string

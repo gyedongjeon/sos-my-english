@@ -113,6 +113,9 @@ onBeforeUnmount(() => {
               <button class="btn btn-xs" @click="speech.speak(drill.last.improved)">Hear it</button>
             </p>
             <p v-if="drill.last.explanation" class="mt-1 text-base-content/70">{{ drill.last.explanation }}</p>
+            <p v-if="!drill.last.correct && drill.last.heard" class="mt-1 text-xs text-base-content/60">
+              Kept in <RouterLink class="link" :to="{ name: 'corrections' }">Corrections</RouterLink> to practise again.
+            </p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
