@@ -115,3 +115,20 @@ def test_a_pattern_sentence_is_judged_by_its_meaning_and_grammar_not_by_the_mode
     assert re.search("[가-힣]", wrong["explanation"]) and not re.search("[가-힣]", wrong["improved"])
     # Other words than the model answer's, but right.
     assert judge("I should have gone sooner")["correct"] is True
+
+
+def test_a_marked_part_of_a_sentence_becomes_a_short_pattern(client, monkeypatch):
+    from app import videos
+    from app.videos import Snippet
+
+    sentence = "This is the closest I've ever gotten to a college graduation."
+    monkeypatch.setattr(videos, "_transcript", lambda video_id: ([Snippet(0.0, 5.0, sentence)], "en", False))
+    monkeypatch.setattr(videos, "_about", lambda video_id: ("A speech", "A channel"))
+    line = client.post("/api/videos", json={"url": "https://youtu.be/UF8uR6Z6KLc"}).json()["lines"][0]
+    response = client.post("/api/patterns", json={"line": line["id"], "phrase": "the closest I've ever gotten to"})
+    assert response.status_code == 201, response.text
+    made = response.json()
+    assert "closest" in made["pattern"].lower() and len(made["pattern"].split()) <= 14
+    # A formula, not the sentence again.
+    assert "college graduation" not in made["pattern"].lower()
+    assert made["use"].strip() and made["example"] == sentence

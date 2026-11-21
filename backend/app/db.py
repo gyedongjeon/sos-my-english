@@ -422,4 +422,18 @@ def init_db() -> None:
         _add_column(conn, "video_lines", "shadowed", "INTEGER NOT NULL DEFAULT 0")
         _add_column(conn, "video_lines", "best", "INTEGER")
         conn.execute("CREATE INDEX IF NOT EXISTS video_lines_by_video ON video_lines (video, position)")
+        # A sentence pattern the learner made from a sentence of a video. The sentence is kept
+        # as its example, so the pattern outlives the video.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS own_patterns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pattern TEXT NOT NULL UNIQUE,
+                use TEXT NOT NULL,
+                example TEXT NOT NULL,
+                line INTEGER REFERENCES video_lines(id) ON DELETE SET NULL,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+            )
+            """
+        )
         conn.execute("CREATE INDEX IF NOT EXISTS messages_by_conversation ON messages (conversation_id, id)")
