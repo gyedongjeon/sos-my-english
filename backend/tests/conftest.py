@@ -21,7 +21,7 @@ import litellm  # noqa: E402
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app import speech, transcribe  # noqa: E402
+from app import speech, topics, transcribe  # noqa: E402
 from app.db import init_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.paths import DATA_DIR, FRONTEND_DIST  # noqa: E402
@@ -57,6 +57,7 @@ def isolated(monkeypatch, request):
     monkeypatch.setattr(speech.urllib.request, "urlopen", _no_network)
     monkeypatch.setattr(speech, "_kokoro", None)
     monkeypatch.setattr(transcribe, "_download", _no_network)
+    monkeypatch.setattr(topics.trafilatura, "fetch_url", _no_network)
     for download in (speech.model_download, transcribe.model_download):
         monkeypatch.setattr(download, "_thread", None)
         monkeypatch.setattr(download, "error", None)

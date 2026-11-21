@@ -41,6 +41,14 @@ class Conversation(BaseModel):
     messages: list[SavedMessage]
     # Written when the learner wraps the conversation up; None until then.
     review: Review | None = None
+    # What the two know besides the situation, for a topic made from a text; None otherwise.
+    background: str | None = None
+
+    def setting(self) -> str:
+        """The situation as the tutor is told it, with the background when there is one."""
+        if not self.background:
+            return self.situation
+        return f"{self.situation}\n\nBackground that you and the learner have both read:\n{self.background}"
 
 
 class ConversationSummary(BaseModel):
@@ -108,12 +116,12 @@ def list_conversations() -> list[ConversationSummary]:
 def start_conversation(body: StartRequest) -> Conversation:
     """Start a conversation on a topic; the topic's opening line is its first message."""
     with get_connection() as conn:
-        topic = conn.execute("SELECT title, situation, opener FROM topics WHERE id = ?", (body.topic_id,)).fetchone()
+        topic = conn.execute("SELECT title, situation, opener, background FROM topics WHERE id = ?", (body.topic_id,)).fetchone()
         if topic is None:
             raise HTTPException(status_code=404, detail="Topic not found")
         created = conn.execute(
-            "INSERT INTO conversations (topic_id, title, situation) VALUES (?, ?, ?)",
-            (body.topic_id, topic["title"], topic["situation"]),
+            "INSERT INTO conversations (topic_id, title, situation, background) VALUES (?, ?, ?, ?)",
+            (body.topic_id, topic["title"], topic["situation"], topic["background"]),
         )
         conn.execute(
             "INSERT INTO messages (conversation_id, role, text) VALUES (?, 'tutor', ?)",
@@ -173,7 +181,7 @@ def reply(conversation_id: int) -> TutorReply:
     if saved.messages[-1].role != "learner":
         raise HTTPException(status_code=409, detail="There is nothing new to reply to.")
     try:
-        result = tutor_reply(saved.situation, [Message(role=m.role, text=m.text) for m in saved.messages])
+        result = tutor_reply(saved.setting(), [Message(role=m.role, text=m.text) for m in saved.messages])
     except LLMError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
     fix = result.correction
@@ -198,7 +206,7 @@ def review(conversation_id: int) -> Review:
     if all(m.role != "learner" for m in saved.messages):
         raise HTTPException(status_code=409, detail="Nothing was said in this conversation yet.")
     try:
-        written = write_review(saved.situation, [(m.role, m.text, m.correction) for m in saved.messages])
+        written = write_review(saved.setting(), [(m.role, m.text, m.correction) for m in saved.messages])
     except LLMError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
     with get_connection() as conn:

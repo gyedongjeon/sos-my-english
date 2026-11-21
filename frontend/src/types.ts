@@ -8,6 +8,8 @@ export interface Topic {
   custom: boolean
   /** What a built-in topic is shown under; null for the learner's own. */
   category: string | null
+  /** For a topic made from a text: the summary of it that the partner knows. Null otherwise. */
+  background: string | null
 }
 
 /** How a line was spoken, measured from the audio by the local Whisper model. */
@@ -63,6 +65,8 @@ export interface SavedConversation {
   messages: SavedMessage[]
   /** Written when the conversation is wrapped up; null until then. */
   review: Review | null
+  /** The background of the topic it was held on, if that was made from a text. */
+  background: string | null
 }
 
 /** A saved conversation in the history list. */

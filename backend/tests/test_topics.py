@@ -41,7 +41,7 @@ def test_built_in_topics_are_not_the_learners_own(client):
 
 def test_a_topic_of_the_learners_own_is_added_after_the_built_in_ones(client):
     added = add(client)
-    assert added == {"id": added["id"], **OWN, "custom": True, "category": None}
+    assert added == {"id": added["id"], **OWN, "custom": True, "category": None, "background": None}
     listed = client.get("/api/topics").json()
     assert len(listed) == len(SEED_TOPICS) + 1
     assert listed[-1] == added

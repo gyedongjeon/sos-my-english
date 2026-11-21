@@ -77,6 +77,11 @@ onBeforeUnmount(() => speech.stop())
         </RouterLink>
       </header>
 
+      <details v-if="conversation.background" class="collapse-arrow collapse mt-3 border border-base-300 bg-base-100">
+        <summary class="collapse-title text-sm font-medium">What the text was about</summary>
+        <p class="collapse-content text-sm text-base-content/80">{{ conversation.background }}</p>
+      </details>
+
       <ReviewCard v-if="conversation.review" class="mt-4" :review="conversation.review" :messages="messages" @hear="speech.speak" />
       <div v-else class="mt-4 flex flex-wrap items-center gap-3">
         <button class="btn btn-sm" :disabled="reviewing" @click="summarize">Summarize this conversation</button>
