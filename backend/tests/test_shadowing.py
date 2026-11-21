@@ -109,3 +109,10 @@ def test_a_database_from_before_shadowing_gains_the_columns(client, saved):
         conn.execute("ALTER TABLE video_lines DROP COLUMN best")
     init_db()
     assert client.get(f"/api/videos/{saved[0]['id']}").json()["lines"][0]["shadowed"] == 0
+
+
+def test_a_number_counts_whether_it_was_heard_as_a_word_or_as_a_figure(client, saved):
+    # Speech recognition often writes "3" where "three" was said.
+    result = shadow(client, saved[0]["lines"][2], "Today I want to tell you 3 stories")
+    assert result["accuracy"] == 100
+    assert shadow(client, saved[1]["lines"][1], "It is one hundred percent true")["accuracy"] < 100
