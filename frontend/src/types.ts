@@ -4,6 +4,8 @@ export interface Topic {
   title: string
   situation: string
   opener: string
+  /** Added by the learner, so it can be removed; the built-in topics cannot. */
+  custom: boolean
 }
 
 /** How a line was spoken, measured from the audio by the local Whisper model. */
