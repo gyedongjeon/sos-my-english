@@ -12,6 +12,9 @@ export interface TopicDraft {
 /** The category the learner's own topics are shown under. */
 export const OWN = 'Yours'
 
+/** Whether what was pasted is a web link and nothing else. */
+export const isLink = (pasted: string) => /^https?:\/\/\S+$/.test(pasted.trim())
+
 const categoryOf = (topic: Topic) => (topic.custom ? OWN : (topic.category ?? 'Other'))
 
 /** The topics to practise: the built-in ones, then the learner's own. */
@@ -56,6 +59,24 @@ export const useTopicsStore = defineStore('topics', {
       try {
         const json = { title: draft.title, situation: draft.situation, opener: draft.opener.trim() || null }
         this.topics.push(await api<Topic>('/topics', { method: 'POST', json }))
+        this.category = OWN
+        return true
+      } catch (e) {
+        this.addError = (e as Error).message
+        return false
+      } finally {
+        this.adding = false
+      }
+    },
+
+    /** Has a topic made from a text such as a news article, or from the page a link leads to; resolves with whether it was added. */
+    async addFromText(text: string): Promise<boolean> {
+      this.adding = true
+      this.addError = ''
+      try {
+        const pasted = text.trim()
+        const json = isLink(pasted) ? { url: pasted } : { text: pasted }
+        this.topics.push(await api<Topic>('/topics/from-text', { method: 'POST', json }))
         this.category = OWN
         return true
       } catch (e) {

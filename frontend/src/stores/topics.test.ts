@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Topic } from '../types'
 import { useTopicsStore } from './topics'
 
-const BUILT_IN: Topic = { id: 1, title: 'Small talk', situation: 'A relaxed chat.', opener: 'How are you?', custom: false, category: 'Everyday' }
-const OWN: Topic = { id: 7, title: 'Renting a car', situation: 'At the rental desk.', opener: 'Hello!', custom: true, category: null }
+const BUILT_IN: Topic = { id: 1, title: 'Small talk', situation: 'A relaxed chat.', opener: 'How are you?', custom: false, category: 'Everyday', background: null }
+const OWN: Topic = { id: 7, title: 'Renting a car', situation: 'At the rental desk.', opener: 'Hello!', custom: true, category: null, background: null }
 
 // Answers each "METHOD path" with the prepared [status, body], and records the requests and their JSON.
 function fakeBackend(replies: Record<string, [number, unknown]>) {
@@ -77,8 +77,8 @@ describe('topics', () => {
     expect(store.topics).toEqual([BUILT_IN, OWN])
   })
 
-  const CAFE: Topic = { id: 3, title: 'At a café', situation: 'Ordering.', opener: 'Hi!', custom: false, category: 'Food' }
-  const WEATHER: Topic = { id: 9, title: 'The weather', situation: 'A chat.', opener: 'Hi!', custom: false, category: 'Everyday' }
+  const CAFE: Topic = { id: 3, title: 'At a café', situation: 'Ordering.', opener: 'Hi!', custom: false, category: 'Food', background: null }
+  const WEATHER: Topic = { id: 9, title: 'The weather', situation: 'A chat.', opener: 'Hi!', custom: false, category: 'Everyday', background: null }
 
   it('groups the topics by category, in the order they come, with the learner’s own last', async () => {
     fakeBackend({ 'GET /topics': [200, [BUILT_IN, WEATHER, CAFE, OWN]] })
@@ -119,5 +119,46 @@ describe('topics', () => {
     expect(store.categories).toEqual(['Everyday', 'Food'])
     expect(store.active).toBe('Everyday')
     expect(store.shown).toEqual([BUILT_IN])
+  })
+
+  const ARTICLE: Topic = {
+    id: 8,
+    title: 'A car-free main street',
+    situation: 'A discussion of an article.',
+    opener: 'What do you think?',
+    custom: true,
+    category: null,
+    background: 'The street closes to cars on weekends.',
+  }
+
+  it('makes a topic from a pasted text and opens the learner’s own topics', async () => {
+    const backend = fakeBackend({ 'GET /topics': [200, [BUILT_IN]], 'POST /topics/from-text': [201, ARTICLE] })
+    const store = useTopicsStore()
+    await store.load()
+    expect(await store.addFromText('  The city council voted…  ')).toBe(true)
+    expect(backend.sent['POST /topics/from-text']).toEqual({ text: 'The city council voted…' })
+    expect(store.topics).toEqual([BUILT_IN, ARTICLE])
+    expect(store.active).toBe('Yours')
+    expect(store.adding).toBe(false)
+  })
+
+  it('says why a topic could not be made from a text', async () => {
+    fakeBackend({ 'GET /topics': [200, [BUILT_IN]], 'POST /topics/from-text': [502, { detail: 'No model is configured.' }] })
+    const store = useTopicsStore()
+    await store.load()
+    expect(await store.addFromText('The city council voted…')).toBe(false)
+    expect(store.addError).toContain('No model is configured.')
+    expect(store.topics).toEqual([BUILT_IN])
+  })
+
+  it('sends a pasted link as a link, so the backend reads the page', async () => {
+    const backend = fakeBackend({ 'GET /topics': [200, [BUILT_IN]], 'POST /topics/from-text': [201, ARTICLE] })
+    const store = useTopicsStore()
+    await store.load()
+    expect(await store.addFromText(' https://news.example/street?id=1 ')).toBe(true)
+    expect(backend.sent['POST /topics/from-text']).toEqual({ url: 'https://news.example/street?id=1' })
+    // A text that merely starts with a link is still a text.
+    await store.addFromText('https://news.example/street says the council voted…')
+    expect(backend.sent['POST /topics/from-text']).toEqual({ text: 'https://news.example/street says the council voted…' })
   })
 })

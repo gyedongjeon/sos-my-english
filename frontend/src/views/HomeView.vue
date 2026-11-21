@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import MorseSignal from '../components/MorseSignal.vue'
-import { useTopicsStore } from '../stores/topics'
+import { isLink, useTopicsStore } from '../stores/topics'
 
 const store = useTopicsStore()
 
 // The form for a topic of the learner's own, shown on request.
 const writing = ref(false)
 const draft = reactive({ title: '', situation: '', opener: '' })
+// How the topic is made: described by the learner, or written from a text they paste in.
+const source = ref<'describe' | 'text'>('describe')
+const text = ref('')
+// Shorter than this there is too little to talk about; the backend refuses it too.
+const MIN_TEXT = 100
 // The own topic whose "Delete" was pressed once; deleting takes a second press.
 const confirming = ref<number | null>(null)
 
@@ -20,6 +25,17 @@ async function add() {
   if (!(await store.add(draft))) return
   Object.assign(draft, { title: '', situation: '', opener: '' })
   writing.value = false
+}
+
+async function addFromText() {
+  if (!(await store.addFromText(text.value))) return
+  text.value = ''
+  writing.value = false
+}
+
+function choose(next: 'describe' | 'text') {
+  store.addError = ''
+  source.value = next
 }
 
 async function remove(id: number) {
@@ -87,9 +103,53 @@ onMounted(() => store.load())
         </div>
       </div>
 
-      <form v-if="writing" class="card card-border bg-base-100" @submit.prevent="add">
+      <form v-if="writing" class="card card-border bg-base-100" @submit.prevent="source === 'text' ? addFromText() : add()">
         <div class="card-body gap-3">
           <h2 class="card-title text-lg">A topic of your own</h2>
+          <div class="flex flex-wrap gap-2" role="tablist" aria-label="How to make the topic">
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="source === 'describe'"
+              class="btn btn-sm rounded-full"
+              :class="source === 'describe' ? 'btn-neutral' : 'btn-ghost'"
+              :disabled="store.adding"
+              @click="choose('describe')"
+            >
+              Describe it
+            </button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="source === 'text'"
+              class="btn btn-sm rounded-full"
+              :class="source === 'text' ? 'btn-neutral' : 'btn-ghost'"
+              :disabled="store.adding"
+              @click="choose('text')"
+            >
+              From a link or text
+            </button>
+          </div>
+
+          <template v-if="source === 'text'">
+            <label class="flex flex-col gap-1">
+              <span class="text-sm font-medium">Link or text</span>
+              <textarea
+                v-model="text"
+                class="textarea w-full"
+                rows="8"
+                maxlength="30000"
+                required
+                placeholder="Paste a link to an article or a speech, or paste the text itself."
+              ></textarea>
+              <span class="text-xs text-base-content/60">
+                Any language works. A link is opened and its text read; pages that need a login and videos cannot be
+                read, so paste their text instead. The text is sent to your AI model, which writes a title, a short
+                summary to talk from, and your partner's first line. The text itself is not kept.
+              </span>
+            </label>
+          </template>
+          <template v-else>
           <label class="flex flex-col gap-1">
             <span class="text-sm font-medium">Title</span>
             <input v-model.trim="draft.title" class="input w-full" maxlength="80" required placeholder="Renting a car" />
@@ -110,12 +170,19 @@ onMounted(() => store.load())
             <span class="text-sm font-medium">Your partner's first line <span class="font-normal text-base-content/60">(optional)</span></span>
             <input v-model.trim="draft.opener" class="input w-full" maxlength="400" placeholder="Leave empty to have it written for you" />
           </label>
+          </template>
           <div v-if="store.addError" role="alert" class="alert alert-error alert-soft">{{ store.addError }}</div>
           <div class="flex flex-wrap items-center gap-2">
-            <button class="btn btn-primary btn-sm" type="submit" :disabled="store.adding">Add the topic</button>
+            <button
+              class="btn btn-primary btn-sm"
+              type="submit"
+              :disabled="store.adding || (source === 'text' && !isLink(text) && text.trim().length < MIN_TEXT)"
+            >
+              {{ source === 'text' ? 'Make the topic' : 'Add the topic' }}
+            </button>
             <button class="btn btn-ghost btn-sm" type="button" :disabled="store.adding" @click="writing = false">Cancel</button>
             <span v-if="store.adding" class="flex items-center gap-2 text-sm text-base-content/60">
-              <MorseSignal animated /> Adding…
+              <MorseSignal animated /> {{ source === 'text' ? 'Reading it…' : 'Adding…' }}
             </span>
           </div>
         </div>

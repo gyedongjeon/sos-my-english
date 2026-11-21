@@ -128,6 +128,11 @@ onBeforeUnmount(() => {
         </button>
       </header>
 
+      <details v-if="store.topic.background" class="collapse-arrow collapse mt-3 border border-base-300 bg-base-100">
+        <summary class="collapse-title text-sm font-medium">What the text was about</summary>
+        <p class="collapse-content text-sm text-base-content/80">{{ store.topic.background }}</p>
+      </details>
+
       <section class="mt-4 flex flex-col gap-1" aria-label="Conversation">
         <template v-for="(message, i) in store.messages" :key="i">
           <div class="chat" :class="message.role === 'tutor' ? 'chat-start' : 'chat-end'">
