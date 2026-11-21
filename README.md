@@ -44,14 +44,16 @@ partner's next line together with at most one correction of what you just said.
 ### Speech-to-text
 What you say is transcribed locally with [Whisper](https://github.com/SYSTRAN/faster-whisper): no
 API key is needed and the audio never leaves your machine. The `small.en` model (~480 MB) is
-downloaded on the first transcription; set the `WHISPER_MODEL` environment variable to use
-another one. The clarity score is Whisper's confidence in the words it heard, a proxy for how
+downloaded into the data folder (`whisper/`) in the background when the app is first opened, with
+its progress shown at the top of the page; a recording made before it is there waits for it. Set
+the `WHISPER_MODEL` environment variable to use another one. Because it is spoken, punctuation and capitals are
+never corrected. The clarity score is Whisper's confidence in the words it heard, a proxy for how
 clearly they were pronounced. Allow microphone access when asked.
 
 ### Text-to-speech
 Your partner's lines are read aloud with a local
 [Kokoro](https://github.com/thewh1teagle/kokoro-onnx) voice. Its model files (~350 MB) are
-downloaded in the background on first use, and rendered clips are cached in
+downloaded in the background when the app is first opened, and rendered clips are cached in
 `backend/data/tts/cache/`. Set the `TTS_VOICE` environment variable to change the voice. While
 the download is running, or if the backend cannot produce audio, the browser's built-in voice is
 used instead.
@@ -71,6 +73,12 @@ npm install
 npm run dev
 ```
 
+To set the model and API key from a file instead of the Settings page (handy with a fresh data
+folder, or for trying another provider), copy `backend/.env.example` to `backend/.env`, fill it
+in, and start the backend with `uv run --env-file .env uvicorn app.main:app --reload`. `.env` is
+git-ignored; a model saved on the Settings page takes priority over it. (LiteLLM also loads
+`backend/.env` by itself when the backend is started in `backend/`.)
+
 ### Desktop app
 The desktop app is an Electron window that starts and stops the backend for you.
 
@@ -84,8 +92,13 @@ npm run dist   # build desktop/release/SOS My English-<version>-arm64.dmg
 `npm run dist` first downloads the uv release pinned in `desktop/scripts/fetch-uv.mjs` (checked
 against its SHA-256) into `desktop/vendor/`, to bundle it into the app, so the built app needs
 nothing else installed. Releases are built and published by GitHub Actions when a version tag is
-pushed; see [docs/git-workflow/versioning.md](docs/git-workflow/versioning.md). The packaged app
-keeps its data in `~/Library/Application Support/SOS My English/data/`.
+pushed; see [docs/git-workflow/versioning.md](docs/git-workflow/versioning.md).
+
+The packaged app keeps everything it stores or downloads in one folder,
+`~/Library/Application Support/SOS My English/`: your data and the speech models (`data/`), the
+Python packages (`venv/`), and uv's own downloads (`uv-cache/`, `python/`). Nothing is written to
+shared caches such as `~/.cache`. macOS does not remove that folder when the app is moved to the
+Trash, so to uninstall completely, delete the app and that folder.
 
 ### Updates
 The installed app asks GitHub for the latest release when it starts. When there is a newer one,
@@ -106,12 +119,20 @@ cd frontend && npm test         # unit tests (Vitest)
 cd desktop && npm test          # unit tests (Vitest)
 ```
 
-The backend tests never call a real LLM, Whisper, or Kokoro, and never reach the network. Opening a pull
-request into `main` runs all three suites, the frontend build, and the desktop type check
-(`.github/workflows/ci.yml`).
+The backend tests never call a real LLM, Whisper, or Kokoro, and never reach the network. The
+exception is three "live" tests that send real requests to a model and check the shape of its
+replies; they run only when asked for, with a key in `backend/.env`:
+
+```bash
+cd backend && uv run --env-file .env pytest -m live
+```
+
+Opening a pull request into `main` runs all three suites, the live tests (with a key kept as the
+repository secret `GEMINI_API_KEY`; without it they skip themselves), the frontend build, and the
+desktop type check (`.github/workflows/ci.yml`).
 
 ## Structure
-- `backend/` — FastAPI app. Everything it stores lives in `backend/data/` (git-ignored): the SQLite file `app.db` and the `tts/` voice model and cache.
+- `backend/` — FastAPI app. Everything it stores lives in `backend/data/` (git-ignored): the SQLite file `app.db`, the `whisper/` speech-recognition model, and the `tts/` voice model and cache.
 - `frontend/` — Vue 3 app; `/api` requests are proxied to the backend by Vite. Once built (`npm run build`), the backend serves it too, so http://127.0.0.1:8000 alone runs the whole app.
 - `desktop/` — Electron shell that starts the backend and shows the app in a window.
 
