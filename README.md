@@ -19,6 +19,7 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **Listening first**: your partner's reply is read aloud, and its text stays hidden until you ask for it.
 - **Corrections as you go**: after each thing you say, the most valuable fix is shown with the better sentence and why, and you can hear the better sentence.
 - **How clearly you spoke**: each line shows a clarity score, the words that were hard to recognize, and your pace.
+- **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
 - **Explanations in your language**: corrections are explained in Korean, Japanese, Chinese, Spanish, and more; the conversation stays in English.
 - **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation goes to the LLM provider you choose, with your own API key.
 
@@ -48,10 +49,11 @@ On Intel Macs, Windows, and Linux there is no installer yet; [run it from source
 Everything the installed app puts on disk is in one folder,
 `~/Library/Application Support/SOS My English/`:
 
-- `data/` — your settings and the speech models
+- `data/` — your conversations, settings, and the speech models
 - `venv/`, `uv-cache/`, `python/` — the Python packages and Python itself, set up on the first launch
 
-Nothing is written to shared caches such as `~/.cache`. Deleting the app leaves this folder in
+To back up or move your conversations, copy `data/`. Nothing is written to shared caches such
+as `~/.cache`. Deleting the app leaves this folder in
 place, so to uninstall completely, move the app to the Trash and then delete that folder.
 
 ### Updates
@@ -87,6 +89,9 @@ UI, and is sent only to the chosen provider.
 Each topic sets a situation (small talk, ordering at a café, a meeting at work, ...) and an
 opening line. After each thing you say, the LLM gets the conversation so far and returns your
 partner's next line together with at most one correction of what you just said.
+
+Each line is saved in the local database as it is said, so a conversation is on the History
+page even if the app is closed in the middle of it. A conversation can be deleted there.
 
 ### Speech-to-text
 What you say is transcribed locally with [Whisper](https://github.com/SYSTRAN/faster-whisper): no
@@ -164,7 +169,7 @@ repository secret `GEMINI_API_KEY`; without it they skip themselves), the fronte
 desktop type check (`.github/workflows/ci.yml`).
 
 ## Structure
-- `backend/` — FastAPI app. Everything it stores lives in `backend/data/` (git-ignored): the SQLite file `app.db`, the `whisper/` speech-recognition model, and the `tts/` voice model and cache.
+- `backend/` — FastAPI app. Everything it stores lives in `backend/data/` (git-ignored): the SQLite file `app.db` (topics, conversations, settings), the `whisper/` speech-recognition model, and the `tts/` voice model and cache.
 - `frontend/` — Vue 3 app; `/api` requests are proxied to the backend by Vite. Once built (`npm run build`), the backend serves it too, so http://127.0.0.1:8000 alone runs the whole app.
 - `desktop/` — Electron shell that starts the backend and shows the app in a window.
 
