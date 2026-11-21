@@ -21,6 +21,8 @@ from youtube_transcript_api import (
 
 from .corrections import _words
 from .db import get_connection
+from .llm import LLMError, complete, parse_json_reply
+from .pattern_list import LEVELS
 
 router = APIRouter(prefix="/api")
 
@@ -117,6 +119,8 @@ class VideoSummary(BaseModel):
     generated: bool
     added_at: str
     sentences: int
+    # The CEFR level of its English, A1 to C2; None while it has none.
+    level: str | None = None
 
 
 class Video(BaseModel):
@@ -127,11 +131,74 @@ class Video(BaseModel):
     language: str
     generated: bool
     added_at: str
+    level: str | None = None
     lines: list[SavedLine]
 
 
 class NewVideo(BaseModel):
     url: str
+
+
+class Level(BaseModel):
+    level: str | None
+
+
+class Estimate(BaseModel):
+    level: str = Field(description="The CEFR level a learner needs to follow the video: A1, A2, B1, B2, C1 or C2.")
+
+
+LEVEL_PROMPT = """\
+You are an English teacher choosing videos for learners. You get sentences taken from the
+start, the middle, and the end of a video's subtitles, and how fast it is spoken. Estimate the
+CEFR level a learner needs to follow the video by ear and to repeat its sentences: A1, A2, B1,
+B2, C1 or C2. Go by the vocabulary, the length and build of the sentences, how much is idiom or
+specialist language, and the speed: around 120 words a minute is slow and clear, 150 is
+ordinary speech, and 180 or more is fast.
+
+Reply with a single JSON object matching this schema, and nothing else:
+{schema}"""
+
+# How much of the subtitles the model reads to estimate a level, in characters.
+SAMPLE = 2400
+
+
+def _take(stretch: list[Line], limit: int, from_end: bool = False) -> str:
+    """As many whole sentences of a stretch as fit the limit, from its start or up to its end."""
+    picked: list[str] = []
+    for line in reversed(stretch) if from_end else stretch:
+        if sum(map(len, picked)) + len(line.text) > limit:
+            break
+        picked.append(line.text)
+    return " ".join(reversed(picked) if from_end else picked)
+
+
+def _sample(lines: list[Line]) -> str:
+    """Sentences from all through a video, and its speed, for estimating its level."""
+    words = sum(len(line.text.split()) for line in lines)
+    # From the first word to the last, pauses included: the pace a listener has to keep up with.
+    spoken = lines[-1].end - lines[0].start if lines else 0
+    speed = f"Spoken at about {round(words / spoken * 60)} words a minute." if spoken > 0 else ""
+    third, limit = max(1, len(lines) // 3), SAMPLE // 3
+    parts = [
+        _take(lines[:third], limit),
+        _take(lines[third : 2 * third], limit),
+        _take(lines[2 * third :], limit, from_end=True),
+    ]
+    return f"{speed}\n\n" + "\n…\n".join(part for part in parts if part)
+
+
+def _estimate(lines: list[Line]) -> str | None:
+    """The level the model gives a video; None when its answer is not a level. Raises LLMError
+    when the model cannot be asked."""
+    reply = complete(
+        LEVEL_PROMPT.format(schema=Estimate.model_json_schema()),
+        _sample(lines),
+        max_tokens=1000,
+        response_format={"type": "json_object"},
+        reasoning_effort="low",
+    )
+    level = parse_json_reply(reply, Estimate).level.strip().upper()
+    return level if level in LEVELS else None
 
 
 def video_id_of(url: str) -> str | None:
@@ -284,10 +351,15 @@ def add_video(body: NewVideo, response: Response) -> Video:
     if not lines:
         raise HTTPException(status_code=422, detail="This video has no English subtitles.")
     title, channel = _about(video_id)
+    try:
+        level = _estimate(lines)
+    except LLMError:
+        # No model, or it did not answer: the video is saved all the same, without a level.
+        level = None
     with get_connection() as conn:
         created = conn.execute(
-            "INSERT INTO videos (video_id, title, channel, language, generated) VALUES (?, ?, ?, ?, ?)",
-            (video_id, title or f"YouTube video {video_id}", channel, language, generated),
+            "INSERT INTO videos (video_id, title, channel, language, generated, level) VALUES (?, ?, ?, ?, ?, ?)",
+            (video_id, title or f"YouTube video {video_id}", channel, language, generated, level),
         )
         conn.executemany(
             "INSERT INTO video_lines (video, position, start, end, text) VALUES (?, ?, ?, ?, ?)",
@@ -303,6 +375,33 @@ def get_video(video: int) -> Video:
     if found is None:
         raise HTTPException(status_code=404, detail="Video not found")
     return found
+
+
+@router.put("/videos/{video}/level", response_model=Video)
+def set_level(video: int, body: Level) -> Video:
+    """Set a video's level by hand, or clear it."""
+    if body.level is not None and body.level not in LEVELS:
+        raise HTTPException(status_code=422, detail=f"A level is one of {', '.join(LEVELS)}.")
+    with get_connection() as conn:
+        changed = conn.execute("UPDATE videos SET level = ? WHERE id = ?", (body.level, video))
+        if changed.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Video not found")
+        return _load(conn, "id", video)
+
+
+@router.post("/videos/{video}/level", response_model=Video)
+def estimate_level(video: int) -> Video:
+    """Have a video's level estimated again from its subtitles."""
+    found = get_video(video)
+    try:
+        level = _estimate(found.lines)
+    except LLMError as e:
+        raise HTTPException(status_code=502, detail=f"Could not estimate the level: {e}") from e
+    if level is None:
+        raise HTTPException(status_code=502, detail="Could not estimate the level: the model gave no level.")
+    with get_connection() as conn:
+        conn.execute("UPDATE videos SET level = ? WHERE id = ?", (level, video))
+        return _load(conn, "id", video)
 
 
 @router.delete("/videos/{video}", status_code=204)
