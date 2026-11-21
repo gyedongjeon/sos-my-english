@@ -21,6 +21,7 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **How clearly you spoke**: each line shows a clarity score, the words that were hard to recognize, and your pace.
 - **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
 - **40 topics in 9 categories**: everyday chat, work, school, shopping, food, travel, services, home, and giving your opinion.
+- **Sentence patterns by level**: 100 patterns from A1 to C2. You see a sentence in your own language and say it in English, five sentences a round, and each one is checked.
 - **Your own topics**: add the situations you need (a job interview, renting a car, a call with a client) next to the built-in ones.
 - **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
@@ -119,6 +120,18 @@ in your feedback language. It is saved with the conversation, and a conversation
 wrapped up can be summarized later from the History page. Saying more after a summary drops it,
 so it can be written again for the whole conversation.
 
+### Sentence patterns
+The Patterns page lists 100 sentence patterns by CEFR level (A1 to C2), such as "I'd like …",
+"should have + past participle", or "Never have I …". There is no official level for a pattern;
+each is placed where the grammar it needs is usually taught. Picking one starts a round: the LLM
+writes five new sentences that need the pattern, in your feedback language, each with a model
+answer in English. You say each sentence in English; the recording is transcribed locally and
+the LLM judges it by its meaning, its grammar, and whether the pattern was used, not by whether
+it matches the model answer. You can try again, hear the right sentence, or ask for the answer.
+A round's score counts the sentences that were right at the first try and is kept with the
+pattern; the sentences themselves are not stored. With English as the feedback language, a
+short instruction ("Say that you regret …") is shown in place of a sentence to translate.
+
 ### Practising corrections
 The Corrections page lists the fixes from all saved conversations. "Say it" records you, the
 recording is transcribed locally like any other line, and the words are compared with the better
@@ -191,7 +204,7 @@ cd desktop && npm test          # unit tests (Vitest)
 ```
 
 The backend tests never call a real LLM, Whisper, or Kokoro, and never reach the network. The
-exception is six "live" tests that send real requests to a model and check the shape of its
+exception is eight "live" tests that send real requests to a model and check the shape of its
 replies; they run only when asked for, with a key in `backend/.env`:
 
 ```bash
