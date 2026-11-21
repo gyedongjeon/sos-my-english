@@ -35,3 +35,12 @@ export function backendLaunch({ project, frontend, userData, port, env }: Backen
   args.push('uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(port))
   return { args, env: launchEnv }
 }
+
+/**
+ * The command that stops the backend, where one is needed. On Windows uv starts the Python
+ * server as a process of its own and ending uv leaves it running, so the whole tree is ended.
+ * Elsewhere the backend runs in its own process group, which is signalled instead.
+ */
+export function stopCommand(platform: NodeJS.Platform, pid: number): { command: string; args: string[] } | null {
+  return platform === 'win32' ? { command: 'taskkill', args: ['/pid', String(pid), '/T', '/F'] } : null
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { backendLaunch } from '../src/backend'
+import { backendLaunch, stopCommand } from '../src/backend'
 
 const options = {
   project: '/App/Resources/backend',
@@ -51,5 +51,16 @@ describe('backendLaunch', () => {
     expect(args).not.toContain('--frozen')
     expect(args).not.toContain('--no-dev')
     expect(args).not.toContain('--python')
+  })
+})
+
+describe('stopCommand', () => {
+  it('ends the whole process tree on Windows, where uv and the Python server are separate processes', () => {
+    expect(stopCommand('win32', 4321)).toEqual({ command: 'taskkill', args: ['/pid', '4321', '/T', '/F'] })
+  })
+
+  it('needs no command elsewhere, where the process group is signalled', () => {
+    expect(stopCommand('darwin', 4321)).toBeNull()
+    expect(stopCommand('linux', 4321)).toBeNull()
   })
 })

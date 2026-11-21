@@ -43,7 +43,8 @@
         "from": "vendor/uv",
         "to": "uv",
         "filter": [
-          "uv"
+          "uv",
+          "uv.exe"
         ]
       }
     ],
@@ -59,6 +60,23 @@
       "extendInfo": {
         "NSMicrophoneUsageDescription": "The microphone records what you say so it can be transcribed and corrected."
       }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "SOS-My-English-Setup-${version}.${ext}"
     }
   },
   "devDependencies": {

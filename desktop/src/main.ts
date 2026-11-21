@@ -7,7 +7,7 @@ import { mkdir, rm } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { backendLaunch } from './backend'
+import { backendLaunch, stopCommand } from './backend'
 import {
   bundlePath,
   download,
@@ -57,7 +57,7 @@ function startBackend(uv: string, port: number) {
   const { args, env } = backendLaunch({ project, frontend, userData, port, env: process.env })
 
   // Its own process group, so quitting can stop uv together with the Python server it runs.
-  const child = spawn(uv, args, { cwd: project, env, detached: process.platform !== 'win32' })
+  const child = spawn(uv, args, { cwd: project, env, detached: process.platform !== 'win32', windowsHide: true })
   const keep = (chunk: Buffer) => {
     backendLog = (backendLog + chunk.toString()).slice(-4000)
   }
@@ -77,7 +77,8 @@ function stopBackend() {
   backend = null
   if (!child?.pid) return
   try {
-    if (process.platform === 'win32') child.kill()
+    const stop = stopCommand(process.platform, child.pid)
+    if (stop) spawn(stop.command, stop.args, { stdio: 'ignore', windowsHide: true })
     else process.kill(-child.pid, 'SIGTERM')
   } catch {
     // Already gone.
@@ -143,9 +144,11 @@ async function checkForUpdates(manual: boolean) {
   }
 
   const bundle = bundlePath(app.getPath('exe'))
-  const blocker = update.archive
-    ? replaceBlocker({ packaged: app.isPackaged, platform: process.platform, bundle, writable })
-    : 'This release cannot be installed from inside the app.'
+  // Only the macOS app replaces itself, so elsewhere the reason is given whatever the release holds.
+  const blocker =
+    update.archive || process.platform !== 'darwin'
+      ? replaceBlocker({ packaged: app.isPackaged, platform: process.platform, bundle, writable })
+      : 'This release cannot be installed from inside the app.'
   const title = `SOS My English ${update.version} is available`
   const have = `You have ${app.getVersion()}.`
   if (blocker || !update.archive || !bundle) {
@@ -191,14 +194,27 @@ async function installUpdate(update: Update, bundle: string) {
 }
 
 function setMenu() {
-  if (process.platform !== 'darwin') return
+  const checkForUpdate = { label: 'Check for Updates…', click: () => void checkForUpdates(true) }
+  if (process.platform !== 'darwin') {
+    // Windows and Linux have no application menu, so the check sits under Help.
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate([
+        { label: 'File', submenu: [{ role: 'quit' }] },
+        { role: 'editMenu' },
+        { role: 'viewMenu' },
+        { role: 'windowMenu' },
+        { label: 'Help', submenu: [checkForUpdate] },
+      ]),
+    )
+    return
+  }
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       {
         label: app.name,
         submenu: [
           { role: 'about' },
-          { label: 'Check for Updates…', click: () => void checkForUpdates(true) },
+          checkForUpdate,
           { type: 'separator' },
           { role: 'services' },
           { type: 'separator' },

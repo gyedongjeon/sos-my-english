@@ -99,3 +99,40 @@ jobs:
         run: npm test
       - name: Type check
         run: npx tsc --noEmit
+
+  # The Windows installer cannot be tried by hand on the machines this project is developed on,
+  # so this job does what can be done without a screen: the backend's tests, the server started
+  # the way the installed app starts it, and the installer itself built.
+  windows:
+    name: Windows (backend, server start, installer)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Run the backend tests
+        working-directory: backend
+        run: |
+          uv sync --frozen
+          uv run --frozen pytest
+      - name: Start the server as the installed app does
+        run: .github/scripts/start-server-check.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            desktop/package-lock.json
+      - name: Build the installer
+        run: |
+          npm ci --prefix frontend
+          npm ci --prefix desktop
+          npm run dist --prefix desktop -- --publish never
+          ls -l desktop/release/*.exe
+
