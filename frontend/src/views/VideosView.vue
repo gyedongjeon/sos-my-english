@@ -4,12 +4,14 @@ import { useRouter } from 'vue-router'
 import MorseSignal from '../components/MorseSignal.vue'
 import { startedOn } from '../history'
 import { useVideosStore } from '../stores/videos'
+import { clock } from '../video'
 
 // The videos saved to study with, and the form that adds one from a YouTube link.
 const store = useVideosStore()
 const router = useRouter()
 
 const link = ref('')
+const phrase = ref('')
 // The video whose "Delete" was pressed once; deleting takes a second press.
 const confirming = ref<number | null>(null)
 
@@ -54,6 +56,36 @@ onMounted(() => store.load())
       The video is played by YouTube's own player and is not downloaded. Its subtitles are saved on this computer
       only.
     </p>
+
+    <form v-if="store.videos.length" class="mt-6 flex flex-wrap gap-2" role="search" @submit.prevent="store.search(phrase)">
+      <input
+        v-model="phrase"
+        class="input grow"
+        type="search"
+        placeholder="Find a word or phrase in your videos"
+        aria-label="Find a word or phrase in your videos"
+      />
+      <button class="btn" type="submit" :disabled="store.searching">Search</button>
+    </form>
+    <section v-if="store.searched && !store.searching" class="mt-3" aria-label="Search results">
+      <p class="text-sm text-base-content/70">
+        <template v-if="store.hits.length">
+          {{ store.hits.length }} sentence{{ store.hits.length === 1 ? '' : 's' }} with “{{ store.searched }}”
+        </template>
+        <template v-else>No sentence with “{{ store.searched }}”.</template>
+      </p>
+      <ul class="mt-2 grid gap-2">
+        <li v-for="hit in store.hits" :key="hit.id">
+          <RouterLink
+            class="block rounded-lg bg-base-100 px-3 py-2 transition hover:ring-2 hover:ring-primary"
+            :to="{ name: 'video', params: { id: hit.video }, query: { line: hit.position } }"
+          >
+            <span>{{ hit.text }}</span>
+            <span class="block text-xs text-base-content/60">{{ hit.title }} · {{ clock(hit.start) }}</span>
+          </RouterLink>
+        </li>
+      </ul>
+    </section>
 
     <div v-if="store.loading" class="flex justify-center py-16">
       <MorseSignal animated />

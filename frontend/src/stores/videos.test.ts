@@ -22,21 +22,23 @@ const ADDED: Video = {
   generated: true,
   added_at: '2026-11-21T11:00:00Z',
   lines: [
-    { start: 1, end: 2, text: 'One.' },
-    { start: 2, end: 3, text: 'Two.' },
+    { id: 11, start: 1, end: 2, text: 'One.', shadowed: 0, best: null },
+    { id: 12, start: 2, end: 3, text: 'Two.', shadowed: 0, best: null },
   ],
 }
 
 // Answers each "METHOD path" with the prepared [status, body], and records the requests and their JSON.
 function fakeBackend(replies: Record<string, [number, unknown]>) {
   const sent: Record<string, unknown> = {}
+  const asked: string[] = []
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
     const call = `${init?.method ?? 'GET'} ${url.replace('/api', '')}`
     if (typeof init?.body === 'string') sent[call] = JSON.parse(init.body)
-    const [status, body] = replies[call]
+    const [status, body] = replies[call.split('?')[0]]
+    asked.push(call)
     return new Response(status === 204 ? null : JSON.stringify(body), { status })
   })
-  return { sent }
+  return { sent, asked }
 }
 
 beforeEach(() => setActivePinia(createPinia()))
@@ -92,5 +94,35 @@ describe('videos', () => {
     replies['DELETE /videos/1'] = [204, null]
     await store.remove(1)
     expect(store.videos).toEqual([])
+  })
+
+  const HIT = { id: 12, video: 2, video_id: 'arj7oStGLkU', title: 'A talk', position: 1, start: 2, text: 'Two.' }
+
+  it('searches the saved subtitles for a phrase', async () => {
+    const backend = fakeBackend({ 'GET /video-lines': [200, [HIT]] })
+    const store = useVideosStore()
+    await store.search('  two & more ')
+    expect(backend.asked).toEqual(['GET /video-lines?q=two%20%26%20more'])
+    expect(store.hits).toEqual([HIT])
+    expect(store.searched).toBe('two & more')
+    expect(store.searching).toBe(false)
+  })
+
+  it('clears the results when the search box is emptied, without asking', async () => {
+    const backend = fakeBackend({ 'GET /video-lines': [200, [HIT]] })
+    const store = useVideosStore()
+    await store.search('two')
+    await store.search('  ')
+    expect(store.hits).toEqual([])
+    expect(store.searched).toBe('')
+    expect(backend.asked).toHaveLength(1)
+  })
+
+  it('reports a search that failed', async () => {
+    fakeBackend({ 'GET /video-lines': [500, { detail: 'The disk is gone.' }] })
+    const store = useVideosStore()
+    await store.search('two')
+    expect(store.error).toContain('The disk is gone.')
+    expect(store.hits).toEqual([])
   })
 })
