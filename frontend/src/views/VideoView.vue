@@ -7,6 +7,7 @@ import { useRecorder } from '../composables/useRecorder'
 import { useYouTubePlayer } from '../composables/useYouTubePlayer'
 import { usePatternsStore } from '../stores/patterns'
 import { useShadowStore } from '../stores/shadow'
+import { LEVELS, useVideosStore } from '../stores/videos'
 import type { PatternStatus, Video } from '../types'
 import { clock, lineAt, pick, stepFrom } from '../video'
 
@@ -28,6 +29,24 @@ const recorder = useRecorder()
 const shadow = useShadowStore()
 // Problems of this page: the microphone.
 const micError = ref('')
+
+// The video's level: set by hand, or estimated again from its subtitles.
+const videos = useVideosStore()
+const estimating = ref(false)
+
+async function setLevel(level: string) {
+  if (!video.value) return
+  const changed = await videos.setLevel(video.value.id, level || null)
+  if (changed) video.value.level = changed.level
+}
+
+async function estimateLevel() {
+  if (!video.value) return
+  estimating.value = true
+  const changed = await videos.estimateLevel(video.value.id)
+  if (changed) video.value.level = changed.level
+  estimating.value = false
+}
 
 // Making a pattern from the chosen sentence: the sentence it is made from, its words, the
 // stretch of them the learner marked, and the pattern once it is made.
@@ -128,6 +147,7 @@ async function load() {
   loading.value = true
   error.value = ''
   video.value = null
+  videos.error = ''
   chosen.value = -1
   shadow.clear()
   stopMarking()
@@ -184,6 +204,23 @@ onBeforeUnmount(() => recorder.release())
             · automatic subtitles, so some words and sentence breaks may be off</template
           >
         </p>
+        <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+          <label class="flex items-center gap-2">
+            Level
+            <select
+              class="select select-sm w-28"
+              :value="video.level ?? ''"
+              aria-label="Level of this video"
+              @change="setLevel(($event.target as HTMLSelectElement).value)"
+            >
+              <option value="">None</option>
+              <option v-for="level in LEVELS" :key="level" :value="level">{{ level }}</option>
+            </select>
+          </label>
+          <button class="btn btn-ghost btn-sm" :disabled="estimating" @click="estimateLevel">Estimate it</button>
+          <span v-if="estimating" class="flex items-center gap-2 text-base-content/60"><MorseSignal animated /> Estimating…</span>
+          <span v-if="videos.error" role="alert" class="text-error">{{ videos.error }}</span>
+        </div>
       </header>
 
       <div class="sticky top-0 z-10 -mx-4 mt-3 bg-base-200 px-4 pb-3 sm:-mx-6 sm:px-6">

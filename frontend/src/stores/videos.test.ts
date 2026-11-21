@@ -12,6 +12,7 @@ const SAVED: VideoSummary = {
   generated: false,
   added_at: '2026-11-21T10:00:00Z',
   sentences: 150,
+  level: 'B2',
 }
 const ADDED: Video = {
   id: 2,
@@ -21,6 +22,7 @@ const ADDED: Video = {
   language: 'en',
   generated: true,
   added_at: '2026-11-21T11:00:00Z',
+  level: null,
   lines: [
     { id: 11, start: 1, end: 2, text: 'One.', shadowed: 0, best: null },
     { id: 12, start: 2, end: 3, text: 'Two.', shadowed: 0, best: null },
@@ -124,5 +126,55 @@ describe('videos', () => {
     await store.search('two')
     expect(store.error).toContain('The disk is gone.')
     expect(store.hits).toEqual([])
+  })
+
+  const TALK: VideoSummary = { ...SAVED, id: 3, level: 'C1' }
+  const PLAIN: VideoSummary = { ...SAVED, id: 4, level: null }
+
+  it('shows the videos of one level, or those without one, or all', async () => {
+    fakeBackend({ 'GET /videos': [200, [PLAIN, TALK, SAVED]] })
+    const store = useVideosStore()
+    await store.load()
+    // In the order of the levels, whatever order the videos come in.
+    expect(store.levels).toEqual(['B2', 'C1', 'No level'])
+    expect(store.shown).toHaveLength(3)
+    store.level = 'C1'
+    expect(store.shown).toEqual([TALK])
+    store.level = 'No level'
+    expect(store.shown).toEqual([PLAIN])
+  })
+
+  it('goes back to all videos when the chosen level has none left', async () => {
+    fakeBackend({ 'GET /videos': [200, [TALK, SAVED]], 'DELETE /videos/3': [204, null] })
+    const store = useVideosStore()
+    await store.load()
+    store.level = 'C1'
+    await store.remove(3)
+    expect(store.active).toBe('All')
+    expect(store.shown).toEqual([SAVED])
+  })
+
+  it('sets a level by hand and has one estimated, keeping the list up to date', async () => {
+    const backend = fakeBackend({
+      'GET /videos': [200, [SAVED]],
+      'PUT /videos/1/level': [200, { ...ADDED, id: 1, level: 'A2' }],
+      'POST /videos/1/level': [200, { ...ADDED, id: 1, level: 'B1' }],
+    })
+    const store = useVideosStore()
+    await store.load()
+    expect((await store.setLevel(1, 'A2'))?.level).toBe('A2')
+    expect(backend.sent['PUT /videos/1/level']).toEqual({ level: 'A2' })
+    expect(store.videos[0].level).toBe('A2')
+    expect((await store.estimateLevel(1))?.level).toBe('B1')
+    expect(store.videos[0].level).toBe('B1')
+  })
+
+  it('reports a level that could not be estimated', async () => {
+    fakeBackend({ 'GET /videos': [200, [SAVED]], 'POST /videos/1/level': [502, { detail: 'No model is configured.' }] })
+    const store = useVideosStore()
+    await store.load()
+    expect(await store.estimateLevel(1)).toBeNull()
+    expect(store.error).toContain('No model is configured.')
+    expect(store.videos[0].level).toBe('B2')
   })
 })

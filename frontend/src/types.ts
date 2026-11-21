@@ -175,6 +175,8 @@ export interface VideoSummary {
   generated: boolean
   added_at: string
   sentences: number
+  /** The CEFR level of its English, A1 to C2; null while it has none. */
+  level: string | null
 }
 
 /** A saved video with its sentences. */

@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MorseSignal from '../components/MorseSignal.vue'
 import { startedOn } from '../history'
-import { useVideosStore } from '../stores/videos'
+import { ALL, useVideosStore } from '../stores/videos'
 import { clock } from '../video'
 
 // The videos saved to study with, and the form that adds one from a YouTube link.
@@ -94,8 +94,22 @@ onMounted(() => store.load())
       <div v-if="store.error" role="alert" class="alert alert-error alert-soft mt-4">{{ store.error }}</div>
       <p v-if="!store.videos.length && !store.error" class="mt-6 text-base-content/70">No videos yet.</p>
 
-      <ul class="mt-4 grid gap-3">
-        <li v-for="v in store.videos" :key="v.id" class="card card-border bg-base-100">
+      <div v-if="store.levels.length" class="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Levels">
+        <button
+          v-for="level in [ALL, ...store.levels]"
+          :key="level"
+          role="tab"
+          :aria-selected="level === store.active"
+          class="btn btn-sm rounded-full"
+          :class="level === store.active ? 'btn-primary' : 'btn-ghost bg-base-100'"
+          @click="store.level = level"
+        >
+          {{ level }}
+        </button>
+      </div>
+
+      <ul class="mt-3 grid gap-3">
+        <li v-for="v in store.shown" :key="v.id" class="card card-border bg-base-100">
           <div class="card-body flex-row flex-wrap items-center gap-3">
             <RouterLink class="flex grow basis-64 items-center gap-4" :to="{ name: 'video', params: { id: v.id } }">
               <img
@@ -105,7 +119,10 @@ onMounted(() => store.load())
                 loading="lazy"
               />
               <div class="grow">
-                <h2 class="card-title text-lg">{{ v.title }}</h2>
+                <h2 class="card-title text-lg">
+                  {{ v.title }}
+                  <span v-if="v.level" class="badge badge-primary badge-soft badge-sm shrink-0">{{ v.level }}</span>
+                </h2>
                 <p class="text-sm text-base-content/60">
                   <template v-if="v.channel">{{ v.channel }} · </template>{{ v.sentences }} sentences ·
                   {{ startedOn(v.added_at) }}

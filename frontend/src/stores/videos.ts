@@ -2,6 +2,11 @@ import { defineStore } from 'pinia'
 import { api } from '../api'
 import type { Video, VideoHit, VideoSummary } from '../types'
 
+export const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+/** What the videos without a level are listed under, and the choice that shows every video. */
+export const NO_LEVEL = 'No level'
+export const ALL = 'All'
+
 /** The videos saved to study with. */
 export const useVideosStore = defineStore('videos', {
   state: () => ({
@@ -14,7 +19,24 @@ export const useVideosStore = defineStore('videos', {
     hits: [] as VideoHit[],
     searched: '',
     searching: false,
+    // The level chosen on the videos page; kept while the app is open.
+    level: ALL,
   }),
+  getters: {
+    /** The levels that have videos, easiest first, then the videos without one. */
+    levels: (state): string[] => [
+      ...LEVELS.filter((level) => state.videos.some((v) => v.level === level)),
+      ...(state.videos.some((v) => v.level === null) ? [NO_LEVEL] : []),
+    ],
+    /** The chosen level, or all videos while none is chosen or it has no video left. */
+    active(state): string {
+      return this.levels.includes(state.level) ? state.level : ALL
+    },
+    shown(state): VideoSummary[] {
+      if (this.active === ALL) return state.videos
+      return state.videos.filter((v) => (v.level ?? NO_LEVEL) === this.active)
+    },
+  },
   actions: {
     async load() {
       this.loading = true
@@ -44,6 +66,35 @@ export const useVideosStore = defineStore('videos', {
         return null
       } finally {
         this.adding = false
+      }
+    },
+
+    /** Takes over a video's level in the list. */
+    leveled(video: Video | null): Video | null {
+      const listed = video && this.videos.find((v) => v.id === video.id)
+      if (listed && video) listed.level = video.level
+      return video
+    },
+
+    /** Sets a video's level by hand, or clears it with null. */
+    async setLevel(id: number, level: string | null): Promise<Video | null> {
+      this.error = ''
+      try {
+        return this.leveled(await api<Video>(`/videos/${id}/level`, { method: 'PUT', json: { level } }))
+      } catch (e) {
+        this.error = (e as Error).message
+        return null
+      }
+    },
+
+    /** Has a video's level estimated again from its subtitles. */
+    async estimateLevel(id: number): Promise<Video | null> {
+      this.error = ''
+      try {
+        return this.leveled(await api<Video>(`/videos/${id}/level`, { method: 'POST' }))
+      } catch (e) {
+        this.error = (e as Error).message
+        return null
       }
     },
 
