@@ -3,17 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SavedCorrection } from '../types'
 import { useCorrectionsStore } from './corrections'
 
-const saved = (id: number, improved: string, practiced = 0): SavedCorrection => ({
+const saved = (id: string, improved: string, practiced = 0): SavedCorrection => ({
   id,
   conversation_id: 1,
+  pattern_id: null,
   title: 'Small talk',
+  prompt: null,
   original: 'I go to the beach',
   improved,
   explanation: 'Past tense.',
   practiced,
   practiced_at: practiced ? '2026-11-21T09:00:00Z' : null,
 })
-const LIST = [saved(5, "I'm excited."), saved(2, 'I went to the beach.', 1)]
+const LIST = [saved('m5', "I'm excited."), saved('p2', 'I went to the beach.', 1)]
 const AUDIO = new Blob(['audio'])
 
 // Answers each path with the prepared [status, body], and records the requests and their JSON.
@@ -25,7 +27,7 @@ function fakeBackend(replies: Record<string, [number, unknown]>) {
     calls.push(path)
     if (typeof init?.body === 'string') sent[path] = JSON.parse(init.body)
     const [status, body] = replies[path]
-    return new Response(JSON.stringify(body), { status })
+    return new Response(status === 204 ? null : JSON.stringify(body), { status })
   })
   return { sent, calls }
 }
@@ -54,13 +56,13 @@ describe('corrections', () => {
     const backend = fakeBackend({
       '/corrections': [200, LIST],
       '/transcribe': [200, { text: 'I am excited.' }],
-      '/corrections/5/attempts': [200, { matched: true, missing: [], practiced: 1 }],
+      '/corrections/m5/attempts': [200, { matched: true, missing: [], practiced: 1 }],
     })
     const store = useCorrectionsStore()
     await store.load()
-    await store.attempt(5, AUDIO)
-    expect(backend.sent['/corrections/5/attempts']).toEqual({ text: 'I am excited.' })
-    expect(store.results[5]).toEqual({ heard: 'I am excited.', matched: true, missing: [] })
+    await store.attempt('m5', AUDIO)
+    expect(backend.sent['/corrections/m5/attempts']).toEqual({ text: 'I am excited.' })
+    expect(store.results['m5']).toEqual({ heard: 'I am excited.', matched: true, missing: [] })
     expect(store.items[0].practiced).toBe(1)
     expect(store.remaining).toBe(0)
     expect(store.checking).toBeNull()
@@ -70,12 +72,12 @@ describe('corrections', () => {
     fakeBackend({
       '/corrections': [200, LIST],
       '/transcribe': [200, { text: 'I am exciting.' }],
-      '/corrections/5/attempts': [200, { matched: false, missing: ['excited'], practiced: 0 }],
+      '/corrections/m5/attempts': [200, { matched: false, missing: ['excited'], practiced: 0 }],
     })
     const store = useCorrectionsStore()
     await store.load()
-    await store.attempt(5, AUDIO)
-    expect(store.results[5]).toEqual({ heard: 'I am exciting.', matched: false, missing: ['excited'] })
+    await store.attempt('m5', AUDIO)
+    expect(store.results['m5']).toEqual({ heard: 'I am exciting.', matched: false, missing: ['excited'] })
     expect(store.remaining).toBe(1)
   })
 
@@ -83,17 +85,17 @@ describe('corrections', () => {
     const backend = fakeBackend({ '/corrections': [200, LIST], '/transcribe': [200, { text: '' }] })
     const store = useCorrectionsStore()
     await store.load()
-    await store.attempt(5, AUDIO)
+    await store.attempt('m5', AUDIO)
     expect(backend.calls).toEqual(['/corrections', '/transcribe'])
     expect(store.error).toContain('No speech was recognized')
-    expect(store.results[5]).toBeUndefined()
+    expect(store.results['m5']).toBeUndefined()
   })
 
   it('reports a try that could not be checked', async () => {
     fakeBackend({ '/corrections': [200, LIST], '/transcribe': [500, { detail: 'The model is missing.' }] })
     const store = useCorrectionsStore()
     await store.load()
-    await store.attempt(5, AUDIO)
+    await store.attempt('m5', AUDIO)
     expect(store.error).toContain('The model is missing.')
     expect(store.checking).toBeNull()
   })
@@ -101,15 +103,28 @@ describe('corrections', () => {
   it('lets the learner count a try that speech recognition misheard', async () => {
     const backend = fakeBackend({
       '/corrections': [200, LIST],
-      '/corrections/5/attempts': [200, { matched: true, missing: [], practiced: 1 }],
+      '/corrections/m5/attempts': [200, { matched: true, missing: [], practiced: 1 }],
     })
     const store = useCorrectionsStore()
     await store.load()
-    store.results[5] = { heard: 'I am excite it.', matched: false, missing: ['excited'] }
-    await store.countAnyway(5)
+    store.results['m5'] = { heard: 'I am excite it.', matched: false, missing: ['excited'] }
+    await store.countAnyway('m5')
     // The better sentence itself is sent, which always matches.
-    expect(backend.sent['/corrections/5/attempts']).toEqual({ text: "I'm excited." })
-    expect(store.results[5]).toEqual({ heard: 'I am excite it.', matched: true, missing: [] })
+    expect(backend.sent['/corrections/m5/attempts']).toEqual({ text: "I'm excited." })
+    expect(store.results['m5']).toEqual({ heard: 'I am excite it.', matched: true, missing: [] })
     expect(store.items[0].practiced).toBe(1)
+  })
+
+  it('takes a correction off the list, and keeps it when that fails', async () => {
+    const replies: Record<string, [number, unknown]> = { '/corrections': [200, LIST], '/corrections/p2': [500, { detail: 'The disk is full.' }] }
+    fakeBackend(replies)
+    const store = useCorrectionsStore()
+    await store.load()
+    await store.remove('p2')
+    expect(store.error).toContain('The disk is full.')
+    expect(store.items).toHaveLength(2)
+    replies['/corrections/p2'] = [204, null]
+    await store.remove('p2')
+    expect(store.items.map((c) => c.id)).toEqual(['m5'])
   })
 })

@@ -23,9 +23,9 @@ export const useCorrectionsStore = defineStore('corrections', {
     loading: true,
     error: '',
     // The correction whose recording is being transcribed and checked.
-    checking: null as number | null,
+    checking: null as string | null,
     // The last try of this visit, by correction id.
-    results: {} as Record<number, Try>,
+    results: {} as Record<string, Try>,
   }),
   getters: {
     /** How many corrections have never been said right. */
@@ -44,7 +44,7 @@ export const useCorrectionsStore = defineStore('corrections', {
       }
     },
 
-    async check(id: number, heard: string, said: string) {
+    async check(id: string, heard: string, said: string) {
       const checked = await api<Checked>(`/corrections/${id}/attempts`, { method: 'POST', json: { text: said } })
       this.results[id] = { heard, matched: checked.matched, missing: checked.missing }
       const item = this.items.find((c) => c.id === id)
@@ -52,7 +52,7 @@ export const useCorrectionsStore = defineStore('corrections', {
     },
 
     /** Transcribes a try at the better sentence and checks it. */
-    async attempt(id: number, audio: Blob) {
+    async attempt(id: string, audio: Blob) {
       this.error = ''
       this.checking = id
       try {
@@ -69,12 +69,24 @@ export const useCorrectionsStore = defineStore('corrections', {
     },
 
     /** Counts the last try although it was heard differently: speech recognition gets words wrong too. */
-    async countAnyway(id: number) {
+    async countAnyway(id: string) {
       const item = this.items.find((c) => c.id === id)
       if (!item) return
       this.error = ''
       try {
         await this.check(id, this.results[id]?.heard ?? '', item.improved)
+      } catch (e) {
+        this.error = (e as Error).message
+      }
+    },
+
+    /** Takes a correction off the list. */
+    async remove(id: string) {
+      this.error = ''
+      try {
+        await api(`/corrections/${id}`, { method: 'DELETE' })
+        this.items = this.items.filter((c) => c.id !== id)
+        delete this.results[id]
       } catch (e) {
         this.error = (e as Error).message
       }

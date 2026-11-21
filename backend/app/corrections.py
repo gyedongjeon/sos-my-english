@@ -1,6 +1,6 @@
 """Corrections from saved conversations, practised by saying the better sentence aloud."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from .conversation import _spoken
@@ -28,12 +28,18 @@ NUMBERS = dict(
 
 
 class SavedCorrection(BaseModel):
-    """A correction made in a saved conversation, and how often it was practised since."""
+    """A sentence to practise again: a correction made in a saved conversation, or a sentence
+    got wrong in pattern practice. It also says how often it was practised since."""
 
-    # The id of the learner's line it was made on.
-    id: int
-    conversation_id: int
+    # "m" and the id of the learner's line it was made on, or "p" and the id of the mistake.
+    id: str
+    # Where it comes from: one of the two is set. `title` is the conversation's title or the
+    # pattern's formula.
+    conversation_id: int | None = None
+    pattern_id: str | None = None
     title: str
+    # For a pattern mistake: the sentence that was to be said in English.
+    prompt: str | None = None
     original: str
     improved: str
     explanation: str
@@ -88,44 +94,93 @@ def _missing(said: list[str], wanted: list[str]) -> list[str]:
     return missing
 
 
+# Where each kind of correction is stored, by the letter its id starts with: the table, and the
+# column that holds the better sentence.
+KINDS = {"m": ("messages", "correction_improved"), "p": ("pattern_mistakes", "improved")}
+NOW = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')"
+
+
+def _locate(correction_id: str) -> tuple[str, str, int]:
+    """The table, the column of the better sentence, and the row a correction's id stands for."""
+    kind, number = correction_id[:1], correction_id[1:]
+    if kind not in KINDS or not number.isdecimal():
+        raise HTTPException(status_code=404, detail="Correction not found")
+    return (*KINDS[kind], int(number))
+
+
 @router.get("/corrections", response_model=list[SavedCorrection])
 def list_corrections() -> list[SavedCorrection]:
-    """Every correction in the saved conversations, newest first."""
+    """Every correction of the saved conversations and every sentence got wrong in pattern
+    practice, newest first."""
     with get_connection() as conn:
         rows = conn.execute(
             """
-            SELECT m.id, m.conversation_id, c.title, m.correction_original AS original,
-                   m.correction_improved AS improved, m.correction_explanation AS explanation,
-                   m.practiced, m.practiced_at
+            SELECT 'm' || m.id AS id, m.conversation_id, NULL AS pattern_id, c.title, NULL AS prompt,
+                   m.correction_original AS original, m.correction_improved AS improved,
+                   m.correction_explanation AS explanation, m.practiced, m.practiced_at,
+                   COALESCE(m.corrected_at, c.started_at) AS made_at, m.id AS row
             FROM messages m JOIN conversations c ON c.id = m.conversation_id
-            WHERE m.correction_improved IS NOT NULL
-            ORDER BY m.id DESC
+            WHERE m.correction_improved IS NOT NULL AND m.dismissed = 0
+            UNION ALL
+            SELECT 'p' || id, NULL, pattern_id, pattern, prompt, said, improved, explanation,
+                   practiced, practiced_at, created_at, id
+            FROM pattern_mistakes
+            ORDER BY made_at DESC, row DESC
             """
         ).fetchall()
-    return [SavedCorrection(**dict(row)) for row in rows]
+    return [SavedCorrection(**{key: row[key] for key in row.keys() if key not in ("made_at", "row")}) for row in rows]
 
 
 @router.post("/corrections/{correction_id}/attempts", response_model=Attempt)
-def attempt(correction_id: int, body: AttemptRequest) -> Attempt:
+def attempt(correction_id: str, body: AttemptRequest) -> Attempt:
     """Check what the learner said against the better sentence; a match is counted as practice."""
+    table, improved, row_id = _locate(correction_id)
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT correction_improved AS improved, practiced FROM messages"
-            " WHERE id = ? AND correction_improved IS NOT NULL",
-            (correction_id,),
+            f"SELECT {improved} AS improved, practiced FROM {table} WHERE id = ? AND {improved} IS NOT NULL", (row_id,)
         ).fetchone()
         if row is None:
             raise HTTPException(status_code=404, detail="Correction not found")
         said, wanted = _words(body.text), _words(row["improved"])
         matched = _contains(said, wanted)
         if matched:
-            conn.execute(
-                "UPDATE messages SET practiced = practiced + 1,"
-                " practiced_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?",
-                (correction_id,),
-            )
+            conn.execute(f"UPDATE {table} SET practiced = practiced + 1, practiced_at = {NOW} WHERE id = ?", (row_id,))
     return Attempt(
         matched=matched,
         missing=[] if matched else _missing(said, wanted),
         practiced=row["practiced"] + matched,
     )
+
+
+@router.delete("/corrections/{correction_id}", status_code=204)
+def remove(correction_id: str) -> Response:
+    """Take a correction off the list. One made in a conversation stays in that conversation."""
+    table, improved, row_id = _locate(correction_id)
+    with get_connection() as conn:
+        if table == "messages":
+            gone = conn.execute(
+                f"UPDATE messages SET dismissed = 1 WHERE id = ? AND {improved} IS NOT NULL AND dismissed = 0",
+                (row_id,),
+            )
+        else:
+            gone = conn.execute("DELETE FROM pattern_mistakes WHERE id = ?", (row_id,))
+    if gone.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Correction not found")
+    return Response(status_code=204)
+
+
+def keep_mistake(pattern_id: str, pattern: str, prompt: str, said: str, improved: str, explanation: str) -> None:
+    """Keep a sentence got wrong in pattern practice. A new wrong try at the same sentence
+    replaces what was said, and it has to be practised again."""
+    with get_connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO pattern_mistakes (pattern_id, pattern, prompt, said, improved, explanation)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (pattern_id, prompt) DO UPDATE SET
+                pattern = excluded.pattern, said = excluded.said, improved = excluded.improved,
+                explanation = excluded.explanation, practiced = 0, practiced_at = NULL,
+                created_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+            """,
+            (pattern_id, pattern, prompt, said, improved, explanation),
+        )

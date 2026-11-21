@@ -166,12 +166,16 @@ sentence and the marked part are sent to the LLM.
 - Automatic subtitles often have no punctuation. They are then kept line by line.
 
 ### Practising corrections
-The Corrections page lists the fixes from all saved conversations. "Say it" records you, the
+The Corrections page lists the fixes from all saved conversations and the sentences you got
+wrong in pattern practice (with the sentence that was asked for). "Say it" records you, the
 recording is transcribed locally like any other line, and the words are compared with the better
 sentence: punctuation and capitals are ignored, "I'm" equals "I am", and the sentence may be part
 of something longer. A match is counted ("Said right ×2"); otherwise the page shows what was heard
 and which words were missing. Speech recognition mishears too, so a try can be counted by hand.
-No LLM is used for this. Deleting a conversation removes its corrections.
+No LLM is used for this. A correction can be removed from the list; one from a conversation
+stays in that conversation. Deleting a conversation removes its corrections. In pattern
+practice, a new wrong try at the same sentence replaces the earlier one, and an answer that was
+only shown, not tried, is not kept.
 
 ### Speech-to-text
 What you say is transcribed locally with [Whisper](https://github.com/SYSTRAN/faster-whisper): no
