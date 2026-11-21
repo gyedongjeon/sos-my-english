@@ -9,8 +9,8 @@ import urllib.request
 from dataclasses import dataclass
 from html import unescape
 
-from fastapi import APIRouter, HTTPException, Response
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Query, Response
+from pydantic import BaseModel, Field
 from youtube_transcript_api import (
     NoTranscriptFound,
     TranscriptsDisabled,
@@ -19,6 +19,7 @@ from youtube_transcript_api import (
     YouTubeTranscriptApiException,
 )
 
+from .corrections import _words
 from .db import get_connection
 
 router = APIRouter(prefix="/api")
@@ -63,6 +64,48 @@ class Line(BaseModel):
     text: str
 
 
+class SavedLine(Line):
+    """A sentence of a saved video, and how the learner has done at shadowing it."""
+
+    id: int
+    # How often it was shadowed, and the best score so far (0-100); None before the first try.
+    shadowed: int = 0
+    best: int | None = None
+
+
+class Said(BaseModel):
+    text: str = Field(min_length=1, description="What the learner said, as transcribed.")
+
+
+class ShadowedWord(BaseModel):
+    text: str
+    heard: bool
+
+
+class Shadowed(BaseModel):
+    """How one try at saying a sentence after the video went."""
+
+    # The share of the sentence's words that were heard, 0-100.
+    accuracy: int
+    # The sentence word by word, as it is written, with whether each was heard.
+    words: list[ShadowedWord]
+    shadowed: int
+    best: int
+
+
+class Hit(BaseModel):
+    """A sentence found in the saved subtitles."""
+
+    id: int
+    # The saved video it is in (our id and YouTube's), and where.
+    video: int
+    video_id: str
+    title: str
+    position: int
+    start: float
+    text: str
+
+
 class VideoSummary(BaseModel):
     id: int
     # YouTube's own id of the video, which its player is given.
@@ -84,7 +127,7 @@ class Video(BaseModel):
     language: str
     generated: bool
     added_at: str
-    lines: list[Line]
+    lines: list[SavedLine]
 
 
 class NewVideo(BaseModel):
@@ -202,9 +245,10 @@ def _load(conn: sqlite3.Connection, where: str, value: object) -> Video | None:
     if found is None:
         return None
     rows = conn.execute(
-        "SELECT start, end, text FROM video_lines WHERE video = ? ORDER BY position", (found["id"],)
+        "SELECT id, start, end, text, shadowed, best FROM video_lines WHERE video = ? ORDER BY position",
+        (found["id"],),
     ).fetchall()
-    return Video(**dict(found), lines=[Line(**dict(row)) for row in rows])
+    return Video(**dict(found), lines=[SavedLine(**dict(row)) for row in rows])
 
 
 @router.get("/videos", response_model=list[VideoSummary])
@@ -269,3 +313,54 @@ def delete_video(video: int) -> Response:
     if deleted.rowcount == 0:
         raise HTTPException(status_code=404, detail="Video not found")
     return Response(status_code=204)
+
+
+# The most sentences a search returns.
+MAX_HITS = 50
+
+
+@router.get("/video-lines", response_model=list[Hit])
+def search_lines(q: str = Query(min_length=1, max_length=200)) -> list[Hit]:
+    """The sentences of all saved videos that contain a word or phrase, newest video first."""
+    phrase = " ".join(q.split())
+    if not phrase:
+        raise HTTPException(status_code=422, detail="Type a word or a phrase to look for.")
+    # The phrase is looked for as it is: "%" and "_" are not wildcards here.
+    escaped = phrase.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT l.id, l.video, v.video_id, v.title, l.position, l.start, l.text
+            FROM video_lines l JOIN videos v ON v.id = l.video
+            WHERE l.text LIKE ? ESCAPE '\\'
+            ORDER BY v.id DESC, l.position LIMIT ?
+            """,
+            (f"%{escaped}%", MAX_HITS),
+        ).fetchall()
+    return [Hit(**dict(row)) for row in rows]
+
+
+@router.post("/video-lines/{line}/attempts", response_model=Shadowed)
+def shadow(line: int, body: Said) -> Shadowed:
+    """Compare what the learner said after the video with the sentence, word by word."""
+    with get_connection() as conn:
+        found = conn.execute("SELECT text, shadowed, best FROM video_lines WHERE id = ?", (line,)).fetchone()
+        if found is None:
+            raise HTTPException(status_code=404, detail="Sentence not found")
+        left = _words(body.text)
+        words, counted, heard_count = [], 0, 0
+        for written in found["text"].split():
+            # A short form is two words to say; a dash or a lone quotation mark is none.
+            spoken = _words(written)
+            heard = all(word in left for word in spoken)
+            if heard:
+                for word in spoken:
+                    left.remove(word)
+            if spoken:
+                counted += 1
+                heard_count += heard
+            words.append(ShadowedWord(text=written, heard=heard))
+        accuracy = int(100 * heard_count / counted + 0.5) if counted else 0
+        best = max(accuracy, found["best"] or 0)
+        conn.execute("UPDATE video_lines SET shadowed = shadowed + 1, best = ? WHERE id = ?", (best, line))
+    return Shadowed(accuracy=accuracy, words=words, shadowed=found["shadowed"] + 1, best=best)
