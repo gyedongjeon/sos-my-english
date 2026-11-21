@@ -2,10 +2,13 @@
 
 [English](README.md) | **한국어**
 
+[![Release](https://img.shields.io/github/v/release/gyedongjeon/sos-my-english)](https://github.com/gyedongjeon/sos-my-english/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 말문이 막히나요? **영어 말하기**를 내 컴퓨터에서 연습하는 앱입니다. 주제를 고르고 AI 대화 상대와
 소리 내어 이야기하면, 상대가 음성으로 답하고 내가 한 말을 바로바로 고쳐 줍니다.
+
+![SOS My English 대화 화면: 내가 한 말, 교정, 상대의 다음 말](docs/images/practice.png)
 
 [SOS My Interview](https://github.com/gyedongjeon/sos-my-interview)와 같은 SOS 시리즈입니다.
 
@@ -20,7 +23,18 @@
 계정 가입이나 서버가 없는 1인용 앱입니다.
 
 ## 설치
-설치 파일은 아직 없습니다. [소스에서 실행](README.md#run-from-source)할 수 있습니다.
+**Apple Silicon Mac**용 설치 파일을 [최신 릴리스](https://github.com/gyedongjeon/sos-my-english/releases/latest)에서 받을 수 있습니다.
+
+1. `.dmg` 파일을 내려받아 열고, 앱을 Applications 폴더로 끌어 넣습니다.
+2. Apple 개발자 인증서로 서명하지 않은 앱이라 macOS가 처음에는 실행을 막습니다. 터미널에서 아래 명령을 한 번 실행한 뒤 앱을 엽니다.
+   ```bash
+   xattr -cr "/Applications/SOS My English.app"
+   ```
+3. 처음 실행할 때 Python과 Python 패키지(약 450MB)를 내려받습니다. 인터넷 연결이 필요하고 몇 분 걸릴 수 있습니다. 마이크 사용을 물으면 허용해 주세요.
+
+다른 프로그램은 설치하지 않아도 됩니다. 0.1.0 버전은 실행되지 않으니 0.1.1 이상을 받아 주세요.
+
+Intel Mac, Windows, Linux용 설치 파일은 아직 없습니다. [소스에서 실행](README.md#run-from-source)할 수 있습니다.
 
 ## 업데이트
 설치한 앱은 열 때마다 새 버전이 있는지 확인합니다. 새 버전이 있으면 알림 창이 뜨고, "Update and Restart"를 누르면 앱이 새 버전을 내려받아 스스로 교체한 뒤 다시 열립니다. 설정은 그대로 유지됩니다. 메뉴의 **SOS My English → Check for Updates…**로 직접 확인할 수도 있습니다.
@@ -43,6 +57,8 @@
 Google Gemini, Claude, OpenAI, OpenRouter 등을 쓸 수 있습니다. API 키는 내 컴퓨터에만 저장되고, 저장한 뒤에는 화면에 다시 표시되지 않으며, 선택한 서비스로만 전송됩니다.
 
 ## 사용 방법
+![SOS My English 홈 화면: 주제 목록](docs/images/home.png)
+
 1. **Practice**에서 주제를 고르면 상대가 첫마디를 읽어 줍니다. 못 들었다면 "Replay", 글자로 보고 싶다면 "Show text"를 누릅니다.
 2. "Start speaking"을 누르고 말한 뒤 "Stop"을 누릅니다.
 3. 내가 한 말과 교정이 나오고, 상대가 이어서 말합니다. 같은 식으로 대화를 이어 갑니다.
