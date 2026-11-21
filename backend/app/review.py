@@ -36,7 +36,7 @@ Be specific to what was actually said, and honest: praise only what was really d
 
 summary: two or three sentences on how the conversation went as a whole.
 strengths: up to {max_items} things you did well, each one short sentence that quotes or points
-at something you said.
+at something you said. Quote only your own words as you said them, never a corrected version.
 focus: up to {max_items} things to work on next, most valuable first, each one short sentence.
 Look for patterns across the conversation (a mistake made more than once, very short answers,
 the same word used again and again) rather than repeating every correction one by one. Use an
