@@ -48,11 +48,14 @@ correct the learner here.
 
 correction: look only at the learner's latest message. If it has a grammar mistake, a wrong
 word, or phrasing a fluent speaker would not use, give the single most valuable fix: quote
-what they said, give the better version, and explain why in one or two sentences. If it is
+what they said, give the better version, and explain why in one or two sentences of
+{language}. If it is
 already fine, or the only difference would be punctuation or capitals, use null; do not
 invent a problem. In "explanation", talk about what to say, not how to write it.
 
-Write "explanation" in {language}. Keep "reply", "original", and "improved" in English.
+Write "explanation" in {language}: the learner reads it in {language}, even though the
+conversation is in English, and English examples may be quoted inside it. Keep "reply",
+"original", and "improved" in English.
 
 Reply with a single JSON object matching this schema, and nothing else:
 {schema}"""
