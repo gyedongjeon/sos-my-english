@@ -22,13 +22,13 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
 - **40 topics in 9 categories**: everyday chat, work, school, shopping, food, travel, services, home, and giving your opinion.
 - **Sentence patterns by level**: 100 patterns from A1 to C2. You see a sentence in your own language and say it in English, five sentences a round, and each one is checked.
-- **Study with YouTube videos**: paste a link and listen to the video one sentence at a time, with repeat, slower speeds, and the text hidden or shown. Say a sentence after the speaker to see which words came through, and search all your videos for a phrase to hear how it is used. Mark an expression in a sentence to turn it into a pattern of your own and practise it.
+- **Study with YouTube videos**: paste a link and listen to the video one sentence at a time, with repeat, slower speeds, and the text hidden or shown. Say a sentence after the speaker to see which words came through, and search all your videos for a phrase to hear how it is used. Mark an expression in a sentence to turn it into a pattern of your own and practise it. Videos are tagged with a level from A1 to C2 and can be listed level by level.
 - **Your own topics**: add the situations you need (a job interview, renting a car, a call with a client) next to the built-in ones.
 - **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
 - **Explanations in your language**: corrections are explained in Korean, Japanese, Chinese, Spanish, and more; the conversation stays in English.
 - **Topics from what you read**: paste a link to an article or a speech, or its text, and get a topic to discuss it, with a short summary to talk from.
-- **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation, and a text or page you make a topic from, goes to the LLM provider you choose, with your own API key. Videos are streamed from YouTube.
+- **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation, and a text or page you make a topic from, goes to the LLM provider you choose, with your own API key. Videos are streamed from YouTube; a part of a video's subtitles is sent to estimate its level, and a sentence you make a pattern from.
 
 The app runs locally for a single user; there is no account, server, or deployment.
 
@@ -141,6 +141,12 @@ saves them in the local database, cut into sentences: a subtitle line breaks whe
 screen, so the lines are joined and cut again at the sentence ends, and each sentence gets the
 seconds between which it is said. Clicking a sentence plays just that part; it can be repeated,
 slowed down, and listened to with the text (and the player's own subtitles) hidden.
+
+**Levels.** When a video is added, the LLM estimates the CEFR level (A1 to C2) a learner needs
+to follow it, from sentences taken from its start, middle, and end and from how fast it is
+spoken; the whole text is not sent. The Videos page shows the level on each video and lists
+one level at a time. On a video's page the level can be changed by hand or estimated again.
+Without a configured model a video is saved without a level.
 
 **Shadowing.** "Say it after" stops the video and records you saying the sentence you just
 heard. The recording is transcribed locally and compared with the sentence word by word (no
