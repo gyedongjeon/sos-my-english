@@ -5,9 +5,10 @@ import { api } from '../api'
 import MorseSignal from '../components/MorseSignal.vue'
 import { useRecorder } from '../composables/useRecorder'
 import { useYouTubePlayer } from '../composables/useYouTubePlayer'
+import { usePatternsStore } from '../stores/patterns'
 import { useShadowStore } from '../stores/shadow'
-import type { Video } from '../types'
-import { clock, lineAt, stepFrom } from '../video'
+import type { PatternStatus, Video } from '../types'
+import { clock, lineAt, pick, stepFrom } from '../video'
 
 // A saved video, listened to one sentence at a time, and shadowed: said after the speaker.
 const props = defineProps<{ id: number }>()
@@ -27,6 +28,13 @@ const recorder = useRecorder()
 const shadow = useShadowStore()
 // Problems of this page: the microphone.
 const micError = ref('')
+
+// Making a pattern from the chosen sentence: the sentence it is made from, its words, the
+// stretch of them the learner marked, and the pattern once it is made.
+const patterns = usePatternsStore()
+const marking = ref<number | null>(null)
+const marked = ref<[number, number] | null>(null)
+const made = ref<PatternStatus | null>(null)
 
 // The sentence chosen by the learner; while the video plays on, the one being said.
 const chosen = ref(-1)
@@ -53,7 +61,10 @@ const result = computed(() => (shadow.result?.line === lines.value[current.value
 function play(index: number) {
   const line = lines.value[index]
   if (!line) return
-  if (index !== chosen.value) shadow.clear()
+  if (index !== chosen.value) {
+    shadow.clear()
+    stopMarking()
+  }
   chosen.value = index
   player.playPart(Math.max(0, line.start - LEAD), line.end, repeat.value)
 }
@@ -65,6 +76,30 @@ function step(by: 1 | -1) {
 function toggle() {
   if (player.playing.value) player.pause()
   else play(current.value < 0 ? 0 : current.value)
+}
+
+const markWords = computed(() => (marking.value === null ? [] : (lines.value[marking.value]?.text.split(' ') ?? [])))
+const phrase = computed(() => (marked.value ? markWords.value.slice(marked.value[0], marked.value[1] + 1).join(' ') : ''))
+
+function startMarking() {
+  if (current.value < 0) return
+  chosen.value = current.value
+  player.pause()
+  patterns.makeError = ''
+  made.value = null
+  marked.value = null
+  marking.value = current.value
+}
+
+function stopMarking() {
+  marking.value = null
+  marked.value = null
+  made.value = null
+}
+
+async function makePattern() {
+  const line = marking.value === null ? null : lines.value[marking.value]
+  if (line && phrase.value) made.value = await patterns.make(line.id, phrase.value)
 }
 
 // Shadowing is listen, then say: the video is stopped while the learner speaks, or its sound
@@ -95,6 +130,7 @@ async function load() {
   video.value = null
   chosen.value = -1
   shadow.clear()
+  stopMarking()
   recorder.release()
   try {
     video.value = await api<Video>(`/videos/${props.id}`)
@@ -187,6 +223,50 @@ onBeforeUnmount(() => recorder.release())
           >
             Say it after
           </button>
+          <button
+            class="btn btn-sm"
+            :disabled="!player.ready.value || current < 0 || marking !== null"
+            title="Practise an expression of this sentence with other sentences"
+            @click="startMarking"
+          >
+            Make a pattern
+          </button>
+        </div>
+
+        <div v-if="marking !== null" class="mt-2 rounded-box bg-base-100 p-3 text-sm">
+          <template v-if="made">
+            <p class="text-base-content/60">Saved to your patterns:</p>
+            <p class="text-base font-medium">{{ made.pattern }}</p>
+            <p class="text-base-content/70">{{ made.use }}</p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <RouterLink class="btn btn-primary btn-sm" :to="{ name: 'pattern', params: { id: made.id } }">Practise it</RouterLink>
+              <button class="btn btn-ghost btn-sm" @click="stopMarking">Close</button>
+            </div>
+          </template>
+          <template v-else>
+            <p class="text-base-content/60">Click the first and the last word of the expression you want to practise.</p>
+            <p class="mt-1 flex flex-wrap gap-1 text-base">
+              <button
+                v-for="(word, i) in markWords"
+                :key="i"
+                class="rounded px-1 transition hover:bg-primary/15"
+                :class="marked && i >= marked[0] && i <= marked[1] ? 'bg-primary text-primary-content hover:bg-primary' : ''"
+                :aria-pressed="!!marked && i >= marked[0] && i <= marked[1]"
+                :disabled="patterns.making"
+                @click="marked = pick(marked, i)"
+              >
+                {{ word }}
+              </button>
+            </p>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <button class="btn btn-primary btn-sm" :disabled="!phrase || patterns.making" @click="makePattern">Make the pattern</button>
+              <button class="btn btn-ghost btn-sm" :disabled="patterns.making" @click="stopMarking">Cancel</button>
+              <span v-if="patterns.making" class="flex items-center gap-2 text-base-content/60">
+                <MorseSignal animated /> Working out the pattern…
+              </span>
+            </div>
+            <div v-if="patterns.makeError" role="alert" class="alert alert-error alert-soft mt-2">{{ patterns.makeError }}</div>
+          </template>
         </div>
 
         <div v-if="shadow.checking" class="mt-2 flex items-center gap-2 text-sm text-base-content/60">

@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import MorseSignal from '../components/MorseSignal.vue'
 import { usePatternsStore } from '../stores/patterns'
 
 // The sentence patterns, one CEFR level at a time, with how the last round of each went.
 const store = usePatternsStore()
+// The own pattern whose "Delete" was pressed once; deleting takes a second press.
+const confirming = ref<string | null>(null)
+
+async function remove(id: string) {
+  await store.remove(id)
+  confirming.value = null
+}
 
 onMounted(() => store.load())
 </script>
@@ -14,6 +21,7 @@ onMounted(() => store.load())
     <h1 class="text-2xl font-semibold">Patterns</h1>
     <p class="text-sm text-base-content/70">
       Pick a sentence pattern. You see a sentence in your language and say it in English, five sentences a round.
+      Patterns you make from a sentence of a video are under “Yours”.
     </p>
 
     <div v-if="store.loading" class="flex justify-center py-16">
@@ -37,15 +45,13 @@ onMounted(() => store.load())
       </div>
 
       <ul class="mt-3 grid gap-3">
-        <li v-for="p in store.shown" :key="p.id">
-          <RouterLink
-            class="card card-border bg-base-100 transition hover:border-primary"
-            :to="{ name: 'pattern', params: { id: p.id } }"
-          >
-            <div class="card-body flex-row items-center gap-4">
+        <li v-for="p in store.shown" :key="p.id" class="card card-border bg-base-100 transition hover:border-primary">
+          <div class="card-body flex-row flex-wrap items-center gap-3">
+            <RouterLink class="flex grow basis-64 items-center gap-4" :to="{ name: 'pattern', params: { id: p.id } }">
               <div class="grow">
                 <h2 class="card-title text-lg">{{ p.pattern }}</h2>
                 <p class="text-sm text-base-content/60">{{ p.use }}</p>
+                <p v-if="p.custom" class="mt-1 text-sm italic text-base-content/60">“{{ p.example }}”</p>
               </div>
               <span
                 v-if="p.sessions"
@@ -56,8 +62,24 @@ onMounted(() => store.load())
                 {{ p.last_correct }}/{{ p.last_total }}
               </span>
               <span aria-hidden="true" class="text-2xl text-primary">›</span>
-            </div>
-          </RouterLink>
+            </RouterLink>
+            <template v-if="p.custom">
+              <RouterLink
+                v-if="p.video !== null"
+                class="btn btn-ghost btn-sm"
+                :to="{ name: 'video', params: { id: p.video }, query: { line: p.position ?? 0 } }"
+              >
+                In the video
+              </RouterLink>
+              <template v-if="confirming === p.id">
+                <button class="btn btn-error btn-sm" @click="remove(p.id)">Delete for good</button>
+                <button class="btn btn-ghost btn-sm" @click="confirming = null">Keep</button>
+              </template>
+              <button v-else class="btn btn-ghost btn-sm" :aria-label="`Delete the pattern ${p.pattern}`" @click="confirming = p.id">
+                Delete
+              </button>
+            </template>
+          </div>
         </li>
       </ul>
     </template>

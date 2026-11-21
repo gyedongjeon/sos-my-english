@@ -14,6 +14,9 @@ const PATTERN: PatternStatus = {
   last_correct: null,
   last_total: null,
   practiced_at: null,
+  custom: false,
+  video: null,
+  position: null,
 }
 const OTHER: PatternStatus = { ...PATTERN, id: 'id-like', level: 'A1', pattern: "I'd like + noun" }
 const EXERCISES = {
@@ -43,7 +46,7 @@ function fakeBackend(overrides: Record<string, [number, unknown]>) {
     calls.push(path)
     if (typeof init?.body === 'string') sent[path] = JSON.parse(init.body)
     const [status, body] = replies[path]
-    return new Response(JSON.stringify(body), { status })
+    return new Response(status === 204 ? null : JSON.stringify(body), { status })
   })
   return { replies, sent, calls }
 }
@@ -62,6 +65,47 @@ describe('patterns', () => {
     expect(store.shown).toEqual([PATTERN])
     expect(store.byId('should-have')).toEqual(PATTERN)
     expect(store.byId('nope')).toBeNull()
+  })
+})
+
+describe('own patterns', () => {
+  const OWN: PatternStatus = { ...PATTERN, id: 'own-1', level: 'Yours', pattern: "the closest I've ever + past participle", custom: true, video: 3, position: 4 }
+
+  it('makes a pattern from the marked part of a sentence and lists it under Yours', async () => {
+    const backend = fakeBackend({ '/patterns': [201, OWN] })
+    const store = usePatternsStore()
+    store.patterns = [OTHER, PATTERN]
+    expect(await store.make(42, "  the closest I've ever gotten to ")).toEqual(OWN)
+    expect(backend.sent['/patterns']).toEqual({ line: 42, phrase: "the closest I've ever gotten to" })
+    expect(store.levels).toEqual(['A1', 'B2', 'Yours'])
+    expect(store.making).toBe(false)
+  })
+
+  it('does not list a pattern twice when it was made before', async () => {
+    fakeBackend({ '/patterns': [200, OWN] })
+    const store = usePatternsStore()
+    store.patterns = [OTHER, OWN]
+    await store.make(42, 'the closest')
+    expect(store.patterns).toHaveLength(2)
+  })
+
+  it('says why a pattern could not be made', async () => {
+    fakeBackend({ '/patterns': [502, { detail: 'No model is configured.' }] })
+    const store = usePatternsStore()
+    expect(await store.make(42, 'the closest')).toBeNull()
+    expect(store.makeError).toContain('No model is configured.')
+  })
+
+  it('removes a pattern of the learner’s own, and keeps it when that fails', async () => {
+    const backend = fakeBackend({ '/patterns/own-1': [500, { detail: 'The disk is full.' }] })
+    const store = usePatternsStore()
+    store.patterns = [OTHER, OWN]
+    await store.remove('own-1')
+    expect(store.error).toContain('The disk is full.')
+    expect(store.patterns).toHaveLength(2)
+    backend.replies['/patterns/own-1'] = [204, null]
+    await store.remove('own-1')
+    expect(store.patterns).toEqual([OTHER])
   })
 })
 

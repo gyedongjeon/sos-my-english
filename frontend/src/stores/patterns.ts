@@ -10,6 +10,9 @@ export const usePatternsStore = defineStore('patterns', {
     error: '',
     // The level chosen on the patterns page; kept while the app is open.
     level: '',
+    // Making a pattern from a sentence of a video.
+    making: false,
+    makeError: '',
   }),
   getters: {
     /** The levels that have patterns, in the order the backend lists them. */
@@ -32,6 +35,33 @@ export const usePatternsStore = defineStore('patterns', {
         this.error = (e as Error).message
       } finally {
         this.loading = false
+      }
+    },
+
+    /** Has a pattern made from the marked part of a video's sentence; null with `makeError` set when it fails. */
+    async make(line: number, phrase: string): Promise<PatternStatus | null> {
+      this.making = true
+      this.makeError = ''
+      try {
+        const made = await api<PatternStatus>('/patterns', { method: 'POST', json: { line, phrase: phrase.trim() } })
+        if (!this.patterns.some((p) => p.id === made.id)) this.patterns.push(made)
+        return made
+      } catch (e) {
+        this.makeError = (e as Error).message
+        return null
+      } finally {
+        this.making = false
+      }
+    },
+
+    /** Removes a pattern of the learner's own. */
+    async remove(id: string) {
+      this.error = ''
+      try {
+        await api(`/patterns/${id}`, { method: 'DELETE' })
+        this.patterns = this.patterns.filter((p) => p.id !== id)
+      } catch (e) {
+        this.error = (e as Error).message
       }
     },
 
