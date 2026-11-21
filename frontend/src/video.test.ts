@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clock, lineAt, stepFrom } from './video'
+import { clock, lineAt, pick, stepFrom } from './video'
 
 const LINES = [
   { start: 7, end: 10, text: 'One.' },
@@ -45,5 +45,21 @@ describe('clock', () => {
     expect(clock(7.4)).toBe('0:07')
     expect(clock(65)).toBe('1:05')
     expect(clock(3725)).toBe('1:02:05')
+  })
+})
+
+describe('pick', () => {
+  it('marks one word first, then stretches the mark to a second word in either direction', () => {
+    expect(pick(null, 3)).toEqual([3, 3])
+    expect(pick([3, 3], 6)).toEqual([3, 6])
+    expect(pick([3, 3], 1)).toEqual([1, 3])
+  })
+
+  it('starts again once a stretch of words is marked', () => {
+    expect(pick([3, 6], 4)).toEqual([4, 4])
+  })
+
+  it('takes the mark off when the one marked word is picked again', () => {
+    expect(pick([3, 3], 3)).toBeNull()
   })
 })

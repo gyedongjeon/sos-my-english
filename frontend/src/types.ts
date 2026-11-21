@@ -107,6 +107,11 @@ export interface PatternStatus {
   last_correct: number | null
   last_total: number | null
   practiced_at: string | null
+  /** Made by the learner from a sentence of a video; its level is "Yours". */
+  custom: boolean
+  /** Where that sentence is, while the video is still saved. */
+  video: number | null
+  position: number | null
 }
 
 /** One sentence of a round: shown in the learner's language, said in English. */

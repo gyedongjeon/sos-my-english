@@ -18,3 +18,13 @@ export function clock(seconds: number): string {
   const two = (n: number) => String(n).padStart(2, '0')
   return h ? `${h}:${two(m)}:${two(s)}` : `${m}:${two(s)}`
 }
+
+/**
+ * Marks words of a sentence by clicking: the first click marks a word, the second stretches the
+ * mark to another word, and the next one starts again. The mark is [first, last] word, or null.
+ */
+export function pick(marked: [number, number] | null, index: number): [number, number] | null {
+  if (!marked || marked[0] !== marked[1]) return [index, index]
+  if (marked[0] === index) return null
+  return [Math.min(marked[0], index), Math.max(marked[0], index)]
+}
