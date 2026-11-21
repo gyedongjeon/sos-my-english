@@ -17,6 +17,7 @@ from .settings import router as settings_router
 from .speech import synthesize
 from .topics import router as topics_router
 from .transcribe import transcribe
+from .videos import router as videos_router
 
 
 @asynccontextmanager
@@ -32,6 +33,7 @@ app.include_router(models_router)
 app.include_router(patterns_router)
 app.include_router(settings_router)
 app.include_router(topics_router)
+app.include_router(videos_router)
 
 
 class TranscriptResponse(BaseModel):

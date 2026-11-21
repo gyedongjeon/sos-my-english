@@ -1,0 +1,271 @@
+"""Videos to study with: a YouTube video is watched in its own player; its subtitles are kept
+here, cut into sentences, so each sentence can be listened to on its own."""
+
+import json
+import re
+import sqlite3
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass
+from html import unescape
+
+from fastapi import APIRouter, HTTPException, Response
+from pydantic import BaseModel
+from youtube_transcript_api import (
+    NoTranscriptFound,
+    TranscriptsDisabled,
+    VideoUnavailable,
+    YouTubeTranscriptApi,
+    YouTubeTranscriptApiException,
+)
+
+from .db import get_connection
+
+router = APIRouter(prefix="/api")
+
+VIDEO_ID = re.compile(r"[A-Za-z0-9_-]{11}")
+# Path prefixes under which youtube.com names a video: /embed/<id>, /shorts/<id>, /live/<id>.
+PATH_KINDS = {"embed", "shorts", "live", "v"}
+ENGLISH = ["en", "en-US", "en-GB", "en-CA", "en-AU", "en-IN"]
+
+# What subtitles carry besides speech: [Music], (Laughter), speaker arrows, music notes.
+NOISE = re.compile(r"\[[^\]]*\]|\([A-Z][a-z]+(?: [a-z]+)?\)|>>|♪|♫")
+SENTENCE_END = re.compile(r"[.!?][\"'”’)\]]*$")
+# A full stop after one of these does not end a sentence.
+ABBREVIATIONS = {"mr.", "mrs.", "ms.", "dr.", "st.", "vs.", "e.g.", "i.e.", "etc."}
+# Subtitles with fewer sentence ends than one in this many words were written without
+# punctuation (typical of automatic ones), so they cannot be cut into sentences.
+WORDS_PER_END = 40
+# A silence of this many seconds between two subtitle lines ends a sentence left without a full stop.
+PAUSE = 1.5
+# A sentence longer than this is cut at its next comma, and at the hard limit without one.
+LONG, TOO_LONG = 40, 60
+
+
+class NoSubtitles(Exception):
+    """Raised with a user-facing message when a video's English subtitles cannot be had."""
+
+
+@dataclass(frozen=True)
+class Snippet:
+    """One subtitle line as YouTube shows it."""
+
+    start: float
+    duration: float
+    text: str
+
+
+class Line(BaseModel):
+    """One sentence of a video, with the part of the video in which it is said (in seconds)."""
+
+    start: float
+    end: float
+    text: str
+
+
+class VideoSummary(BaseModel):
+    id: int
+    # YouTube's own id of the video, which its player is given.
+    video_id: str
+    title: str
+    channel: str
+    # The language code of the subtitles, and whether YouTube made them automatically.
+    language: str
+    generated: bool
+    added_at: str
+    sentences: int
+
+
+class Video(BaseModel):
+    id: int
+    video_id: str
+    title: str
+    channel: str
+    language: str
+    generated: bool
+    added_at: str
+    lines: list[Line]
+
+
+class NewVideo(BaseModel):
+    url: str
+
+
+def video_id_of(url: str) -> str | None:
+    """The video a YouTube link leads to, or None when it is not a link to a YouTube video."""
+    parts = urllib.parse.urlsplit(url.strip())
+    host = (parts.hostname or "").lower().removeprefix("www.").removeprefix("m.")
+    path = [part for part in parts.path.split("/") if part]
+    found = None
+    if host == "youtu.be" and path:
+        found = path[0]
+    elif host in ("youtube.com", "youtube-nocookie.com", "music.youtube.com"):
+        if path[:1] == ["watch"]:
+            found = urllib.parse.parse_qs(parts.query).get("v", [None])[0]
+        elif len(path) >= 2 and path[0] in PATH_KINDS:
+            found = path[1]
+    return found if found and VIDEO_ID.fullmatch(found) else None
+
+
+def _clean(text: str) -> str:
+    return " ".join(NOISE.sub(" ", unescape(text)).split())
+
+
+def sentences(snippets: list[Snippet]) -> list[Line]:
+    """Cut subtitles into sentences. A subtitle line breaks where it fits on the screen, not
+    where a sentence ends, so the lines are joined and cut again at the sentence ends; a
+    word's time is taken from how far into its line it stands."""
+    kept = [(snippet, _clean(snippet.text)) for snippet in snippets]
+    kept = [(snippet, text) for snippet, text in kept if text]
+    # (word, the time it is said at, the time its subtitle line ends)
+    words: list[tuple[str, float, float]] = []
+    for i, (snippet, text) in enumerate(kept):
+        end = snippet.start + snippet.duration
+        if i + 1 < len(kept) and snippet.start < kept[i + 1][0].start < end:
+            # Automatic subtitles stay on screen while the next line is already spoken.
+            end = kept[i + 1][0].start
+        at = 0
+        for word in text.split():
+            at = text.index(word, at)
+            words.append((word, snippet.start + (end - snippet.start) * at / len(text), end))
+            at += len(word)
+    ends = sum(1 for word, _, _ in words if SENTENCE_END.search(word))
+    if ends * WORDS_PER_END < len(words):
+        return [
+            Line(start=snippet.start, end=words_end, text=text)
+            for (snippet, text), words_end in zip(kept, _line_ends(kept), strict=True)
+        ]
+
+    lines: list[Line] = []
+    current: list[tuple[str, float, float]] = []
+    for word in words:
+        if current and word[1] - current[-1][2] >= PAUSE:
+            lines.append(Line(start=current[0][1], end=current[-1][2], text=" ".join(w for w, _, _ in current)))
+            current = []
+        current.append(word)
+        text = word[0]
+        full = bool(SENTENCE_END.search(text)) and text.lower() not in ABBREVIATIONS
+        if full or len(current) >= TOO_LONG or (len(current) >= LONG and text.endswith(",")):
+            lines.append(Line(start=current[0][1], end=current[-1][2], text=" ".join(w for w, _, _ in current)))
+            current = []
+    if current:
+        lines.append(Line(start=current[0][1], end=current[-1][2], text=" ".join(w for w, _, _ in current)))
+    for line, following in zip(lines, lines[1:], strict=False):
+        # A sentence ends where the next one starts, unless a pause comes first.
+        if following.start > line.start:
+            line.end = min(line.end, following.start)
+    return lines
+
+
+def _line_ends(kept: list[tuple[Snippet, str]]) -> list[float]:
+    ends = []
+    for i, (snippet, _) in enumerate(kept):
+        end = snippet.start + snippet.duration
+        if i + 1 < len(kept) and snippet.start < kept[i + 1][0].start < end:
+            end = kept[i + 1][0].start
+        ends.append(end)
+    return ends
+
+
+def _transcript(video_id: str) -> tuple[list[Snippet], str, bool]:
+    """The English subtitles of a video: the lines, their language code, and whether they were
+    made automatically. Subtitles written by a person are preferred."""
+    try:
+        track = YouTubeTranscriptApi().list(video_id).find_transcript(ENGLISH)
+        fetched = track.fetch()
+    except (NoTranscriptFound, TranscriptsDisabled) as e:
+        raise NoSubtitles("This video has no English subtitles.") from e
+    except VideoUnavailable as e:
+        raise NoSubtitles("This video does not exist or is not available.") from e
+    except YouTubeTranscriptApiException as e:
+        raise NoSubtitles(f"The subtitles could not be read from YouTube ({type(e).__name__}). Try again later.") from e
+    except Exception as e:
+        # Offline, or YouTube answered with something the library does not expect.
+        raise NoSubtitles(f"YouTube could not be reached: {e}") from e
+    return [Snippet(s.start, s.duration, s.text) for s in fetched], track.language_code, track.is_generated
+
+
+def _about(video_id: str) -> tuple[str, str]:
+    """The title and the channel of a video, from YouTube's public embedding information;
+    empty when it cannot be had, which does not keep the video from being saved."""
+    watch = urllib.parse.quote(f"https://www.youtube.com/watch?v={video_id}", safe="")
+    try:
+        with urllib.request.urlopen(f"https://www.youtube.com/oembed?url={watch}&format=json", timeout=10) as reply:
+            about = json.load(reply)
+        return str(about.get("title") or "").strip(), str(about.get("author_name") or "").strip()
+    except Exception:
+        return "", ""
+
+
+def _load(conn: sqlite3.Connection, where: str, value: object) -> Video | None:
+    found = conn.execute(f"SELECT * FROM videos WHERE {where} = ?", (value,)).fetchone()
+    if found is None:
+        return None
+    rows = conn.execute(
+        "SELECT start, end, text FROM video_lines WHERE video = ? ORDER BY position", (found["id"],)
+    ).fetchall()
+    return Video(**dict(found), lines=[Line(**dict(row)) for row in rows])
+
+
+@router.get("/videos", response_model=list[VideoSummary])
+def list_videos() -> list[VideoSummary]:
+    """The saved videos, newest first."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT v.*, COUNT(l.id) AS sentences
+            FROM videos v LEFT JOIN video_lines l ON l.video = v.id
+            GROUP BY v.id ORDER BY v.id DESC
+            """
+        ).fetchall()
+    return [VideoSummary(**dict(row)) for row in rows]
+
+
+@router.post("/videos", response_model=Video, status_code=201)
+def add_video(body: NewVideo, response: Response) -> Video:
+    """Save a YouTube video to study with: its title and its English subtitles, as sentences.
+    The video itself is not downloaded; it is played by YouTube's player."""
+    video_id = video_id_of(body.url)
+    if video_id is None:
+        raise HTTPException(status_code=422, detail="This is not a link to a YouTube video.")
+    with get_connection() as conn:
+        if saved := _load(conn, "video_id", video_id):
+            response.status_code = 200
+            return saved
+    try:
+        snippets, language, generated = _transcript(video_id)
+    except NoSubtitles as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    lines = sentences(snippets)
+    if not lines:
+        raise HTTPException(status_code=422, detail="This video has no English subtitles.")
+    title, channel = _about(video_id)
+    with get_connection() as conn:
+        created = conn.execute(
+            "INSERT INTO videos (video_id, title, channel, language, generated) VALUES (?, ?, ?, ?, ?)",
+            (video_id, title or f"YouTube video {video_id}", channel, language, generated),
+        )
+        conn.executemany(
+            "INSERT INTO video_lines (video, position, start, end, text) VALUES (?, ?, ?, ?, ?)",
+            [(created.lastrowid, i, line.start, line.end, line.text) for i, line in enumerate(lines)],
+        )
+        return _load(conn, "id", created.lastrowid)
+
+
+@router.get("/videos/{video}", response_model=Video)
+def get_video(video: int) -> Video:
+    with get_connection() as conn:
+        found = _load(conn, "id", video)
+    if found is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return found
+
+
+@router.delete("/videos/{video}", status_code=204)
+def delete_video(video: int) -> Response:
+    """Remove a saved video and its subtitles."""
+    with get_connection() as conn:
+        deleted = conn.execute("DELETE FROM videos WHERE id = ?", (video,))
+    if deleted.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return Response(status_code=204)

@@ -388,4 +388,32 @@ def init_db() -> None:
             )
             """
         )
+        # A YouTube video saved to study with. Only its subtitles are kept, as sentences with
+        # the seconds between which each is said; the video is played by YouTube's own player.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS videos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                video_id TEXT NOT NULL UNIQUE,
+                title TEXT NOT NULL,
+                channel TEXT NOT NULL DEFAULT '',
+                language TEXT NOT NULL,
+                generated INTEGER NOT NULL DEFAULT 0,
+                added_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS video_lines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                video INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+                position INTEGER NOT NULL,
+                start REAL NOT NULL,
+                end REAL NOT NULL,
+                text TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS video_lines_by_video ON video_lines (video, position)")
         conn.execute("CREATE INDEX IF NOT EXISTS messages_by_conversation ON messages (conversation_id, id)")

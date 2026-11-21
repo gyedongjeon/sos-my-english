@@ -22,12 +22,13 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
 - **40 topics in 9 categories**: everyday chat, work, school, shopping, food, travel, services, home, and giving your opinion.
 - **Sentence patterns by level**: 100 patterns from A1 to C2. You see a sentence in your own language and say it in English, five sentences a round, and each one is checked.
+- **Study with YouTube videos**: paste a link and listen to the video one sentence at a time, with repeat, slower speeds, and the text hidden or shown.
 - **Your own topics**: add the situations you need (a job interview, renting a car, a call with a client) next to the built-in ones.
 - **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
 - **Explanations in your language**: corrections are explained in Korean, Japanese, Chinese, Spanish, and more; the conversation stays in English.
 - **Topics from what you read**: paste a link to an article or a speech, or its text, and get a topic to discuss it, with a short summary to talk from.
-- **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation, and a text or page you make a topic from, goes to the LLM provider you choose, with your own API key.
+- **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation, and a text or page you make a topic from, goes to the LLM provider you choose, with your own API key. Videos are streamed from YouTube.
 
 The app runs locally for a single user; there is no account, server, or deployment.
 
@@ -131,6 +132,21 @@ it matches the model answer. You can try again, hear the right sentence, or ask 
 A round's score counts the sentences that were right at the first try and is kept with the
 pattern; the sentences themselves are not stored. With English as the feedback language, a
 short instruction ("Say that you regret …") is shown in place of a sentence to translate.
+
+### Videos
+The Videos page takes a link to a YouTube video that has English subtitles. The video is played
+by YouTube's own embedded player, inside the app, and is never downloaded. The app reads the
+video's subtitles (preferring ones written by a person to automatic ones) and its title, and
+saves them in the local database, cut into sentences: a subtitle line breaks where it fits the
+screen, so the lines are joined and cut again at the sentence ends, and each sentence gets the
+seconds between which it is said. Clicking a sentence plays just that part; it can be repeated,
+slowed down, and listened to with the text (and the player's own subtitles) hidden.
+
+- The subtitles are read the way YouTube's own page reads them, not through an official
+  interface, so this can stop working when YouTube changes something. A video whose owner does
+  not allow embedding cannot be played.
+- Subtitles stay on this computer and are not sent anywhere; deleting a video deletes them.
+- Automatic subtitles often have no punctuation. They are then kept line by line.
 
 ### Practising corrections
 The Corrections page lists the fixes from all saved conversations. "Say it" records you, the

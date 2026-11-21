@@ -236,8 +236,10 @@ async function main() {
   // The packaged app gets its icon from the bundle; from a checkout the Dock would show Electron's.
   if (!app.isPackaged) app.dock?.setIcon(join(__dirname, '..', 'assets', 'icon.png'))
 
-  // The page records what the learner says with the microphone.
-  session.defaultSession.setPermissionRequestHandler((_contents, permission, allow) => allow(permission === 'media'))
+  // The page records what the learner says with the microphone, and a video can be made full screen.
+  session.defaultSession.setPermissionRequestHandler((_contents, permission, allow) =>
+    allow(permission === 'media' || permission === 'fullscreen'),
+  )
   if (process.platform === 'darwin') {
     // macOS asks once; startup does not wait for the answer.
     void systemPreferences.askForMediaAccess('microphone')
