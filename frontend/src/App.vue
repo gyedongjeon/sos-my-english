@@ -29,6 +29,7 @@ onMounted(async () => {
         </RouterLink>
         <ul class="menu menu-horizontal ml-auto gap-1 px-0">
           <li><RouterLink :class="LINK" to="/" exact-active-class="bg-primary text-primary-content hover:bg-primary">Practice</RouterLink></li>
+          <li><RouterLink :class="LINK" to="/history" active-class="bg-primary text-primary-content hover:bg-primary">History</RouterLink></li>
           <li><RouterLink :class="LINK" to="/settings" active-class="bg-primary text-primary-content hover:bg-primary">Settings</RouterLink></li>
         </ul>
       </div>

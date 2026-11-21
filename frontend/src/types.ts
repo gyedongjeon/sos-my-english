@@ -30,6 +30,36 @@ export interface Message {
   delivery?: Delivery | null
 }
 
+/** A line of a saved conversation, as the backend returns it. */
+export interface SavedMessage {
+  role: 'tutor' | 'learner'
+  text: string
+  correction: Correction | null
+  delivery: { clarity: number; unclear_words: string[]; words_per_minute: number | null } | null
+}
+
+/** A saved conversation with all its lines. */
+export interface SavedConversation {
+  id: number
+  /** Null once the topic it was held on has been removed. */
+  topic_id: number | null
+  title: string
+  situation: string
+  started_at: string
+  messages: SavedMessage[]
+}
+
+/** A saved conversation in the history list. */
+export interface ConversationSummary {
+  id: number
+  topic_id: number | null
+  title: string
+  started_at: string
+  /** How many times the learner spoke, and how many of those lines were corrected. */
+  turns: number
+  corrections: number
+}
+
 export type Phase = 'idle' | 'transcribing' | 'thinking'
 
 /** A model the app downloads on first use, and how far its download is. */
