@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { api } from '../api'
-import type { Correction, Message, Phase, Topic } from '../types'
+import type { Correction, Message, Phase, Review, Topic } from '../types'
 
 interface Transcript {
   text: string
@@ -22,10 +22,16 @@ export const usePracticeStore = defineStore('practice', {
     conversationId: null as number | null,
     // The learner's last line has not reached the saved conversation yet.
     unsaved: false,
+    // How the conversation went, once the learner has wrapped it up.
+    review: null as Review | null,
   }),
   getters: {
     /** The learner spoke last: the tutor's reply is missing (it failed) or on its way. */
     awaitingReply: (state) => state.messages[state.messages.length - 1]?.role === 'learner',
+    /** Something was said and answered, and it has not been reviewed yet. */
+    canWrapUp(state): boolean {
+      return state.conversationId !== null && !this.awaitingReply && !state.review
+    },
   },
   actions: {
     begin(topic: Topic) {
@@ -36,6 +42,7 @@ export const usePracticeStore = defineStore('practice', {
       this.error = ''
       this.conversationId = null
       this.unsaved = false
+      this.review = null
     },
 
     /** Transcribes what the learner said and gets the tutor's reply; resolves with the reply to read aloud. */
@@ -71,6 +78,8 @@ export const usePracticeStore = defineStore('practice', {
             : { clarity: heard.clarity, unclearWords: heard.unclear_words, wordsPerMinute: heard.words_per_minute },
       })
       this.unsaved = true
+      // A review covers the conversation as it was; the backend drops it too.
+      this.review = null
       return this.requestReply()
     },
 
@@ -110,6 +119,23 @@ export const usePracticeStore = defineStore('practice', {
           this.phase = 'idle'
         }
         return null
+      }
+    },
+
+    /** Ends the conversation with a review of it, which is saved with the conversation. */
+    async wrapUp() {
+      if (!this.canWrapUp) return
+      const session = this.session
+      this.error = ''
+      this.phase = 'reviewing'
+      try {
+        const review = await api<Review>(`/conversations/${this.conversationId}/review`, { method: 'POST' })
+        if (session !== this.session) return
+        this.review = review
+      } catch (e) {
+        if (session === this.session) this.error = `Could not write the summary: ${(e as Error).message}`
+      } finally {
+        if (session === this.session) this.phase = 'idle'
       }
     },
   },

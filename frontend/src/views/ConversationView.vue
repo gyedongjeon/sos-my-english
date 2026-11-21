@@ -4,9 +4,10 @@ import { api } from '../api'
 import CorrectionCard from '../components/CorrectionCard.vue'
 import DeliveryNote from '../components/DeliveryNote.vue'
 import MorseSignal from '../components/MorseSignal.vue'
+import ReviewCard from '../components/ReviewCard.vue'
 import { useSpeech } from '../composables/useSpeech'
 import { fromSaved, startedOn } from '../history'
-import type { SavedConversation } from '../types'
+import type { Review, SavedConversation } from '../types'
 
 // A saved conversation, to read and listen to again.
 const props = defineProps<{ id: number }>()
@@ -16,10 +17,28 @@ const conversation = ref<SavedConversation | null>(null)
 const loading = ref(true)
 const error = ref('')
 const messages = computed(() => (conversation.value?.messages ?? []).map(fromSaved))
+// A conversation that was not wrapped up at the time can be summarized here.
+const reviewing = ref(false)
+const reviewError = ref('')
+
+async function summarize() {
+  const reviewed = conversation.value
+  if (!reviewed) return
+  reviewing.value = true
+  reviewError.value = ''
+  try {
+    reviewed.review = await api<Review>(`/conversations/${reviewed.id}/review`, { method: 'POST' })
+  } catch (e) {
+    reviewError.value = `Could not write the summary: ${(e as Error).message}`
+  } finally {
+    reviewing.value = false
+  }
+}
 
 async function load() {
   loading.value = true
   error.value = ''
+  reviewError.value = ''
   conversation.value = null
   try {
     conversation.value = await api<SavedConversation>(`/conversations/${props.id}`)
@@ -57,6 +76,15 @@ onBeforeUnmount(() => speech.stop())
           Practice this topic again
         </RouterLink>
       </header>
+
+      <ReviewCard v-if="conversation.review" class="mt-4" :review="conversation.review" :messages="messages" @hear="speech.speak" />
+      <div v-else class="mt-4 flex flex-wrap items-center gap-3">
+        <button class="btn btn-sm" :disabled="reviewing" @click="summarize">Summarize this conversation</button>
+        <span v-if="reviewing" class="flex items-center gap-2 text-sm text-base-content/60">
+          <MorseSignal animated /> Writing your summary…
+        </span>
+      </div>
+      <div v-if="reviewError" role="alert" class="alert alert-error alert-soft mt-3">{{ reviewError }}</div>
 
       <section class="mt-4 flex flex-col gap-1" aria-label="Conversation">
         <template v-for="(message, i) in messages" :key="i">
