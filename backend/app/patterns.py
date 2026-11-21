@@ -7,7 +7,7 @@ import sqlite3
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field, model_validator
 
-from .corrections import _words
+from .corrections import _words, keep_mistake
 from .db import get_connection
 from .llm import LLMError, complete, parse_json_reply
 from .pattern_list import LEVELS, PATTERNS, Pattern
@@ -313,6 +313,9 @@ def check(pattern_id: str, body: Attempt) -> Verdict:
         raise HTTPException(status_code=502, detail=f"Could not check the sentence: {e}") from e
     if verdict.correct:
         verdict.explanation = None
+    else:
+        # Kept with the corrections, to be heard and said again later.
+        keep_mistake(pattern.id, pattern.pattern, body.prompt, body.said, verdict.improved, verdict.explanation or "")
     return verdict
 
 

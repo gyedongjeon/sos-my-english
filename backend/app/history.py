@@ -188,8 +188,8 @@ def reply(conversation_id: int) -> TutorReply:
     with get_connection() as conn:
         if fix:
             conn.execute(
-                "UPDATE messages SET correction_original = ?, correction_improved = ?, correction_explanation = ?"
-                " WHERE id = ?",
+                "UPDATE messages SET correction_original = ?, correction_improved = ?, correction_explanation = ?,"
+                " corrected_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?",
                 (fix.original, fix.improved, fix.explanation, last["id"]),
             )
         conn.execute(

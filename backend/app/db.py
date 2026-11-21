@@ -368,7 +368,9 @@ def init_db() -> None:
                 correction_improved TEXT,
                 correction_explanation TEXT,
                 practiced INTEGER NOT NULL DEFAULT 0,
-                practiced_at TEXT
+                practiced_at TEXT,
+                corrected_at TEXT,
+                dismissed INTEGER NOT NULL DEFAULT 0
             )
             """
         )
@@ -436,4 +438,28 @@ def init_db() -> None:
             )
             """
         )
+        # A sentence got wrong in pattern practice, kept to be practised again next to the
+        # corrections of conversations. One row for each sentence asked for; a new wrong try
+        # at it replaces what was said.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pattern_mistakes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pattern_id TEXT NOT NULL,
+                pattern TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                said TEXT NOT NULL,
+                improved TEXT NOT NULL,
+                explanation TEXT NOT NULL DEFAULT '',
+                practiced INTEGER NOT NULL DEFAULT 0,
+                practiced_at TEXT,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                UNIQUE (pattern_id, prompt)
+            )
+            """
+        )
+        # When a line's correction was made, to order it among the pattern mistakes, and whether
+        # the learner took it off the list of corrections (it stays in its conversation).
+        _add_column(conn, "messages", "corrected_at", "TEXT")
+        _add_column(conn, "messages", "dismissed", "INTEGER NOT NULL DEFAULT 0")
         conn.execute("CREATE INDEX IF NOT EXISTS messages_by_conversation ON messages (conversation_id, id)")
