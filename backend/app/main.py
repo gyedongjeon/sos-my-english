@@ -7,9 +7,8 @@ from fastapi import FastAPI, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from .conversation import Message, TutorReply, tutor_reply
 from .db import get_connection, init_db
-from .llm import LLMError
+from .history import router as history_router
 from .models import router as models_router
 from .paths import FRONTEND_DIST
 from .settings import router as settings_router
@@ -24,6 +23,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="sos-my-english", lifespan=lifespan)
+app.include_router(history_router)
 app.include_router(models_router)
 app.include_router(settings_router)
 
@@ -34,12 +34,6 @@ class Topic(BaseModel):
     situation: str
     # The tutor's first line, which starts the conversation.
     opener: str
-
-
-class ReplyRequest(BaseModel):
-    topic_id: int
-    # The conversation so far, oldest first, ending with what the learner just said.
-    messages: list[Message] = Field(min_length=1)
 
 
 class TranscriptResponse(BaseModel):
@@ -64,21 +58,6 @@ def list_topics() -> list[Topic]:
     with get_connection() as conn:
         rows = conn.execute("SELECT id, title, situation, opener FROM topics ORDER BY id").fetchall()
     return [Topic(**dict(row)) for row in rows]
-
-
-@app.post("/api/reply", response_model=TutorReply)
-def reply(body: ReplyRequest) -> TutorReply:
-    """The tutor's next line in a conversation, with a correction for the learner's last message."""
-    if body.messages[-1].role != "learner":
-        raise HTTPException(status_code=422, detail="The last message must be the learner's.")
-    with get_connection() as conn:
-        topic = conn.execute("SELECT situation FROM topics WHERE id = ?", (body.topic_id,)).fetchone()
-    if topic is None:
-        raise HTTPException(status_code=404, detail="Topic not found")
-    try:
-        return tutor_reply(topic["situation"], body.messages)
-    except LLMError as e:
-        raise HTTPException(status_code=502, detail=str(e)) from e
 
 
 @app.post("/api/transcribe", response_model=TranscriptResponse)

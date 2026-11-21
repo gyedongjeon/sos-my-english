@@ -66,3 +66,35 @@ def init_db() -> None:
             SEED_TOPICS,
         )
         conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        # A conversation keeps its topic's title and situation, so it stays readable (and the
+        # tutor can still reply in it) after the topic is changed or removed.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS conversations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                topic_id INTEGER REFERENCES topics(id) ON DELETE SET NULL,
+                title TEXT NOT NULL,
+                situation TEXT NOT NULL,
+                started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+            )
+            """
+        )
+        # One line of a conversation, in the order they were said. The delivery columns and the
+        # correction columns are filled for the learner's lines only.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+                role TEXT NOT NULL CHECK (role IN ('tutor', 'learner')),
+                text TEXT NOT NULL,
+                clarity INTEGER,
+                unclear_words TEXT,
+                words_per_minute INTEGER,
+                correction_original TEXT,
+                correction_improved TEXT,
+                correction_explanation TEXT
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS messages_by_conversation ON messages (conversation_id, id)")
