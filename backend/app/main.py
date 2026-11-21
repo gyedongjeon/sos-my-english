@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from .conversation import Message, TutorReply, tutor_reply
 from .db import get_connection, init_db
 from .llm import LLMError
+from .models import router as models_router
 from .paths import FRONTEND_DIST
 from .settings import router as settings_router
 from .speech import synthesize
@@ -23,6 +24,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="sos-my-english", lifespan=lifespan)
+app.include_router(models_router)
 app.include_router(settings_router)
 
 

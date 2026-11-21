@@ -33,6 +33,17 @@ export interface Message {
 export type Phase = 'idle' | 'transcribing' | 'thinking'
 
 /** The AI model in use. The API key never reaches the page, only its last characters. */
+/** A model the app downloads on first use, and how far its download is. */
+export interface ModelStatus {
+  id: 'speech-to-text' | 'voice'
+  label: string
+  state: 'missing' | 'downloading' | 'ready' | 'error'
+  /** Bytes on disk so far, and the expected size when it is known. */
+  downloaded: number
+  total: number | null
+  error: string | null
+}
+
 export interface LLMSettings {
   model: string | null
   source: 'app' | 'env' | null

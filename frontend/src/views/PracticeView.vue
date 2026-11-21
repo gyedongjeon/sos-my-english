@@ -4,6 +4,7 @@ import { api } from '../api'
 import MorseSignal from '../components/MorseSignal.vue'
 import { useRecorder } from '../composables/useRecorder'
 import { useSpeech } from '../composables/useSpeech'
+import { percent, useModelsStore } from '../stores/models'
 import { usePracticeStore } from '../stores/practice'
 import type { Topic } from '../types'
 
@@ -20,6 +21,18 @@ const showLatest = ref(false)
 const bottom = ref<HTMLElement | null>(null)
 
 const busy = computed(() => store.phase !== 'idle')
+// Set while the speech recognition model is still downloading, which the first recording waits for.
+const models = useModelsStore()
+const recognitionDownload = computed(() => {
+  const model = models.byId('speech-to-text')
+  return model?.state === 'downloading' ? model : null
+})
+watch(
+  () => store.phase,
+  (now) => {
+    if (now === 'transcribing') void models.check()
+  },
+)
 const latestTutor = computed(() => store.messages.map((m) => m.role).lastIndexOf('tutor'))
 
 function hear(text: string | null) {
@@ -144,7 +157,16 @@ onBeforeUnmount(() => {
 
         <div v-if="busy" class="flex items-center gap-2 py-2 text-sm text-base-content/60">
           <MorseSignal animated />
-          {{ store.phase === 'transcribing' ? 'Listening to what you said…' : 'Your partner is thinking…' }}
+          <template v-if="store.phase === 'transcribing' && recognitionDownload">
+            Downloading the speech recognition model (first time only)<template
+              v-if="percent(recognitionDownload) !== null"
+            >
+              — {{ percent(recognitionDownload) }}%</template
+            >… What you said is transcribed as soon as it is done.
+          </template>
+          <template v-else>
+            {{ store.phase === 'transcribing' ? 'Listening to what you said…' : 'Your partner is thinking…' }}
+          </template>
         </div>
         <div ref="bottom"></div>
       </section>
