@@ -405,6 +405,9 @@ def init_db() -> None:
             )
             """
         )
+        # The CEFR level (A1-C2) of a video's English: estimated when it is added, or set by
+        # the learner; empty while neither has happened.
+        _add_column(conn, "videos", "level", "TEXT")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS video_lines (
