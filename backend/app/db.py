@@ -103,8 +103,14 @@ def init_db() -> None:
                 words_per_minute INTEGER,
                 correction_original TEXT,
                 correction_improved TEXT,
-                correction_explanation TEXT
+                correction_explanation TEXT,
+                practiced INTEGER NOT NULL DEFAULT 0,
+                practiced_at TEXT
             )
             """
         )
+        # How often a correction's better sentence was said correctly afterwards, and when last;
+        # added after the first conversations were saved.
+        _add_column(conn, "messages", "practiced", "INTEGER NOT NULL DEFAULT 0")
+        _add_column(conn, "messages", "practiced_at", "TEXT")
         conn.execute("CREATE INDEX IF NOT EXISTS messages_by_conversation ON messages (conversation_id, id)")
