@@ -57,3 +57,14 @@ def test_a_review_is_written_in_the_chosen_language_with_english_phrases(client)
     # Both lines have a mistake, so there is something to work on.
     assert review["focus"] and all(re.search("[가-힣]", item) for item in review["focus"])
     assert all(phrase["english"].strip() and not re.search("[가-힣]", phrase["english"]) for phrase in review["phrases"])
+
+
+def test_the_opening_line_of_an_own_topic_is_short_plain_english(client):
+    # The learner may describe the situation in their own language.
+    topic = {"title": "병원 예약", "situation": "병원 접수처에 전화해서 진료 예약을 잡는 상황. 상대는 접수 직원."}
+    response = client.post("/api/topics", json=topic)
+    assert response.status_code == 201, response.text
+    opener = response.json()["opener"]
+    assert 2 <= len(opener) <= 400
+    assert "\n" not in opener and "*" not in opener
+    assert not re.search("[가-힣]", opener)
