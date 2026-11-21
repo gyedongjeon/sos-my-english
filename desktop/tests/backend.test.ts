@@ -37,12 +37,9 @@ describe('backendLaunch', () => {
     expect(env.UV_PYTHON_INSTALL_DIR).toBe('/Users/me/Library/Application Support/SOS My English/python')
   })
 
-  it('runs the packaged app on the Python its packages were locked for', () => {
-    // With a Python folder of its own, uv installs the newest Python, which the packages may
-    // not support yet: 3.15 came out before onnxruntime had a build for it.
-    const { args } = backendLaunch(options)
-    expect(args.slice(args.indexOf('--python'), args.indexOf('--python') + 2)).toEqual(['--python', '3.12'])
-    expect(args.indexOf('--python')).toBeLessThan(args.indexOf('uvicorn'))
+  it('leaves the choice of Python to the project, which pins it for every way of running', () => {
+    // backend/.python-version is shipped with the app; see tests/package.test.ts.
+    expect(backendLaunch(options).args).not.toContain('--python')
   })
 
   it('leaves a checkout to its own defaults', () => {
