@@ -31,7 +31,9 @@
 계정 가입이나 서버가 없는 1인용 앱입니다.
 
 ## 설치
-**Apple Silicon Mac**용 설치 파일을 [최신 릴리스](https://github.com/gyedongjeon/sos-my-english/releases/latest)에서 받을 수 있습니다.
+**Apple Silicon Mac**과 **64비트 Windows**용 설치 파일을 [최신 릴리스](https://github.com/gyedongjeon/sos-my-english/releases/latest)에서 받을 수 있습니다.
+
+### macOS
 
 1. `.dmg` 파일을 내려받아 열고, 앱을 Applications 폴더로 끌어 넣습니다.
 2. Apple 개발자 인증서로 서명하지 않은 앱이라 macOS가 처음에는 실행을 막습니다. 터미널에서 아래 명령을 한 번 실행한 뒤 앱을 엽니다.
@@ -42,19 +44,27 @@
 
 다른 프로그램은 설치하지 않아도 됩니다. 0.1.0 버전은 실행되지 않으니 0.1.1 이상을 받아 주세요.
 
-Intel Mac, Windows, Linux용 설치 파일은 아직 없습니다. [소스에서 실행](README.md#run-from-source)할 수 있습니다.
+### Windows
+1. `SOS-My-English-Setup-<버전>.exe`를 내려받아 실행합니다. 현재 사용자 계정에만 설치되며 관리자 권한이 필요 없습니다.
+2. 서명하지 않은 설치 파일이라 "Windows의 PC 보호" 창이 뜹니다. **추가 정보**를 누른 뒤 **실행**을 누릅니다.
+3. 처음 실행할 때 macOS와 마찬가지로 Python과 Python 패키지, 이어서 음성 모델을 내려받습니다. 앱이 목소리를 듣지 못하면 Windows 개인 정보 설정에서 데스크톱 앱의 마이크 사용을 허용해 주세요.
+
+Windows 설치 파일은 자동화된 검사(백엔드 테스트, 앱과 같은 방식의 서버 시작, 설치 파일 빌드)만 거쳤고, 아직 실제 Windows에서 직접 써 보지는 못했습니다. 문제가 있으면 이슈로 알려 주세요.
+
+Intel Mac, Linux용 설치 파일은 아직 없습니다. [소스에서 실행](README.md#run-from-source)할 수 있습니다.
 
 ## 업데이트
 설치한 앱은 열 때마다 새 버전이 있는지 확인합니다. 새 버전이 있으면 알림 창이 뜨고, "Update and Restart"를 누르면 앱이 새 버전을 내려받아 스스로 교체한 뒤 다시 열립니다. 설정은 그대로 유지됩니다. 메뉴의 **SOS My English → Check for Updates…**로 직접 확인할 수도 있습니다.
 
 - 업데이트 뒤에 macOS가 마이크 권한을 다시 물을 수 있습니다.
 - 앱을 Applications 폴더로 옮기지 않고 실행한 경우 등 스스로 교체할 수 없을 때는 다운로드 페이지를 열어 줍니다.
+- Windows에서는 새 버전을 알려 주고 다운로드 페이지를 엽니다. 새 설치 파일을 그대로 실행하면 되고, 데이터는 유지됩니다.
 
 ## 처음 열 때
 앱을 처음 열면 화면 위에 "Downloading the speech models"가 뜨고, 음성 인식 모델(약 480MB)과 상대 음성 모델(약 350MB)을 한 번 내려받습니다. 진행률이 표시되고, 받는 동안에도 앱을 쓸 수 있습니다. 그동안 상대 목소리는 시스템 기본 음성으로 나오고, 음성 인식 모델을 다 받기 전에 말한 내용은 다운로드가 끝난 뒤 자동으로 이어서 처리됩니다.
 
 ## 삭제
-앱이 저장하거나 내려받는 것(내 데이터, 음성 모델, 실행에 필요한 파일)은 모두 `~/Library/Application Support/SOS My English/` 폴더 하나에 있습니다. macOS는 앱을 휴지통에 넣어도 이 폴더를 지우지 않으므로, 완전히 삭제하려면 앱과 이 폴더를 함께 지우면 됩니다.
+앱이 저장하거나 내려받는 것(내 데이터, 음성 모델, 실행에 필요한 파일)은 모두 `~/Library/Application Support/SOS My English/` 폴더 하나에 있습니다(Windows는 `%APPDATA%\SOS My English\`). macOS는 앱을 휴지통에 넣어도 이 폴더를 지우지 않으므로, 완전히 삭제하려면 앱과 이 폴더를 함께 지우면 됩니다.
 
 ## 처음 설정
 앱을 처음 열면 Settings 화면이 나옵니다.
