@@ -2,12 +2,15 @@
 
 **English** | [한국어](README.ko.md)
 
+[![Release](https://img.shields.io/github/v/release/gyedongjeon/sos-my-english)](https://github.com/gyedongjeon/sos-my-english/releases/latest)
 [![CI](https://github.com/gyedongjeon/sos-my-english/actions/workflows/ci.yml/badge.svg)](https://github.com/gyedongjeon/sos-my-english/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 Stuck for words? An app for practising **spoken English**, running on your own machine. Pick a
 topic, talk it through out loud with an AI partner that answers by voice, and get your English
 fixed as you go.
+
+![A conversation in SOS My English: what you said, its correction, and your partner's next line](docs/images/practice.png)
 
 Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeon/sos-my-interview).
 
@@ -21,8 +24,52 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 
 The app runs locally for a single user; there is no account, server, or deployment.
 
+## Install
+An installer for **Apple Silicon Macs** is attached to each
+[release](https://github.com/gyedongjeon/sos-my-english/releases/latest).
+
+1. Download the `.dmg`, open it, and drag the app to Applications.
+2. The build is not signed with an Apple developer certificate, so macOS blocks it at first. Run
+   this once in Terminal, then open the app:
+   ```bash
+   xattr -cr "/Applications/SOS My English.app"
+   ```
+3. The first launch downloads Python and the Python packages (~450 MB), so it needs an internet
+   connection and can take a few minutes. Allow microphone access when asked.
+4. The speech models (~830 MB in total) are then downloaded once in the background, with their
+   progress shown at the top of the page. You can use the app meanwhile.
+
+Nothing else has to be installed, because the app ships its own [uv](https://docs.astral.sh/uv/).
+Use version 0.1.1 or later: 0.1.0 does not start.
+
+On Intel Macs, Windows, and Linux there is no installer yet; [run it from source](#run-from-source).
+
+### Where files are kept, and uninstalling
+Everything the installed app puts on disk is in one folder,
+`~/Library/Application Support/SOS My English/`:
+
+- `data/` — your settings and the speech models
+- `venv/`, `uv-cache/`, `python/` — the Python packages and Python itself, set up on the first launch
+
+Nothing is written to shared caches such as `~/.cache`. Deleting the app leaves this folder in
+place, so to uninstall completely, move the app to the Trash and then delete that folder.
+
+### Updates
+The installed app asks GitHub for the latest release when it starts. When there is a newer one,
+it offers to update: one click downloads it, replaces the app, and opens it again, with your
+settings kept. You can also choose **SOS My English → Check for Updates…**.
+
+- The download is checked against the SHA-256 that GitHub reports for the release file, and only
+  files from this repository's releases are accepted. The app is not signed by Apple, so that
+  check, not an Apple signature, is what the update relies on.
+- After an update macOS may ask for microphone access again.
+- If the app cannot replace itself (for example, it was not moved to Applications), it opens the
+  download page instead.
+
 ## First setup
 The app opens on the Settings page the first time.
+
+![The home page of SOS My English, with the list of topics](docs/images/home.png)
 
 1. **Feedback language**: pick the language your corrections are explained in. It starts from
    your system language.
@@ -94,23 +141,8 @@ against its SHA-256) into `desktop/vendor/`, to bundle it into the app, so the b
 nothing else installed. Releases are built and published by GitHub Actions when a version tag is
 pushed; see [docs/git-workflow/versioning.md](docs/git-workflow/versioning.md).
 
-The packaged app keeps everything it stores or downloads in one folder,
-`~/Library/Application Support/SOS My English/`: your data and the speech models (`data/`), the
-Python packages (`venv/`), and uv's own downloads (`uv-cache/`, `python/`). Nothing is written to
-shared caches such as `~/.cache`. macOS does not remove that folder when the app is moved to the
-Trash, so to uninstall completely, delete the app and that folder.
-
-### Updates
-The installed app asks GitHub for the latest release when it starts. When there is a newer one,
-it offers to update: one click downloads it, replaces the app, and opens it again, with your
-settings kept. You can also choose **SOS My English → Check for Updates…**.
-
-- The download is checked against the SHA-256 that GitHub reports for the release file, and only
-  files from this repository's releases are accepted. The app is not signed by Apple, so that
-  check, not an Apple signature, is what the update relies on.
-- After an update macOS may ask for microphone access again.
-- If the app cannot replace itself (for example, it was not moved to Applications), it opens the
-  download page instead.
+The packaged app keeps its files in `~/Library/Application Support/SOS My English/`; see
+[Where files are kept, and uninstalling](#where-files-are-kept-and-uninstalling).
 
 ## Tests
 ```bash
