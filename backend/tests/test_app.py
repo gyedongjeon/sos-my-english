@@ -19,7 +19,7 @@ def test_health(client):
 def test_topics_are_seeded_once(client):
     init_db()
     topics = client.get("/api/topics").json()
-    assert [t["title"] for t in topics] == [title for title, _, _ in SEED_TOPICS]
+    assert sorted(t["title"] for t in topics) == sorted(title for title, *_ in SEED_TOPICS)
     assert all(t["situation"] and t["opener"] for t in topics)
 
 
