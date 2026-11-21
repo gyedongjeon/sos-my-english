@@ -14,6 +14,19 @@ export PYTHONDONTWRITEBYTECODE=1
 
 cd "$root/backend"
 uv run --project "$root/backend" --frozen --no-dev uvicorn app.main:app --host 127.0.0.1 --port "$port" > "$work/server.log" 2>&1 &
+server=$!
+
+# The server is stopped whatever happens: left running, it keeps files open that the job's own
+# cleanup then cannot remove.
+stop() {
+  if [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]; then
+    # On Windows the shell's process is not the one that listens; end the one that does.
+    netstat -ano | awk -v port=":$port" '$2 ~ port"$" && $4 == "LISTENING" { print $5 }' | sort -u |
+      while read -r pid; do taskkill //F //T //PID "$pid" > /dev/null 2>&1 || true; done
+  fi
+  kill "$server" > /dev/null 2>&1 || true
+}
+trap stop EXIT
 
 # Installing the packages comes first, so the wait is long.
 for _ in $(seq 150); do
