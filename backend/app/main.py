@@ -8,12 +8,13 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from .corrections import router as corrections_router
-from .db import get_connection, init_db
+from .db import init_db
 from .history import router as history_router
 from .models import router as models_router
 from .paths import FRONTEND_DIST
 from .settings import router as settings_router
 from .speech import synthesize
+from .topics import router as topics_router
 from .transcribe import transcribe
 
 
@@ -28,14 +29,7 @@ app.include_router(corrections_router)
 app.include_router(history_router)
 app.include_router(models_router)
 app.include_router(settings_router)
-
-
-class Topic(BaseModel):
-    id: int
-    title: str
-    situation: str
-    # The tutor's first line, which starts the conversation.
-    opener: str
+app.include_router(topics_router)
 
 
 class TranscriptResponse(BaseModel):
@@ -53,13 +47,6 @@ class SpeechRequest(BaseModel):
 def health() -> dict[str, str]:
     """Lets the desktop shell know the server is ready."""
     return {"status": "ok"}
-
-
-@app.get("/api/topics", response_model=list[Topic])
-def list_topics() -> list[Topic]:
-    with get_connection() as conn:
-        rows = conn.execute("SELECT id, title, situation, opener FROM topics ORDER BY id").fetchall()
-    return [Topic(**dict(row)) for row in rows]
 
 
 @app.post("/api/transcribe", response_model=TranscriptResponse)

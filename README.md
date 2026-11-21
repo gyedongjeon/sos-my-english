@@ -20,6 +20,7 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **Corrections as you go**: after each thing you say, the most valuable fix is shown with the better sentence and why, and you can hear the better sentence.
 - **How clearly you spoke**: each line shows a clarity score, the words that were hard to recognize, and your pace.
 - **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
+- **Your own topics**: add the situations you need (a job interview, renting a car, a call with a client) next to the built-in ones.
 - **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
 - **Explanations in your language**: corrections are explained in Korean, Japanese, Chinese, Spanish, and more; the conversation stays in English.
@@ -91,6 +92,11 @@ UI, and is sent only to the chosen provider.
 Each topic sets a situation (small talk, ordering at a café, a meeting at work, ...) and an
 opening line. After each thing you say, the LLM gets the conversation so far and returns your
 partner's next line together with at most one correction of what you just said.
+
+Besides the built-in topics you can add your own on the home page: a title and the situation
+(who your partner is and what you talk about, in any language). Your partner's first line can be
+typed in or left empty, in which case the LLM writes it. An own topic can be deleted; the
+conversations held on it stay in History.
 
 Each line is saved in the local database as it is said, so a conversation is on the History
 page even if the app is closed in the middle of it. A conversation can be deleted there.
@@ -173,7 +179,7 @@ cd desktop && npm test          # unit tests (Vitest)
 ```
 
 The backend tests never call a real LLM, Whisper, or Kokoro, and never reach the network. The
-exception is four "live" tests that send real requests to a model and check the shape of its
+exception is five "live" tests that send real requests to a model and check the shape of its
 replies; they run only when asked for, with a key in `backend/.env`:
 
 ```bash

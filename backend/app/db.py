@@ -67,6 +67,8 @@ def init_db() -> None:
             )
             """
         )
+        # 1 for a topic the learner added; the built-in ones cannot be removed.
+        _add_column(conn, "topics", "custom", "INTEGER NOT NULL DEFAULT 0")
         conn.executemany(
             "INSERT OR IGNORE INTO topics (title, situation, opener) VALUES (?, ?, ?)",
             SEED_TOPICS,
