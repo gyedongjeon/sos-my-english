@@ -25,7 +25,8 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
 - **Explanations in your language**: corrections are explained in Korean, Japanese, Chinese, Spanish, and more; the conversation stays in English.
-- **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation goes to the LLM provider you choose, with your own API key.
+- **Topics from what you read**: paste a link to an article or a speech, or its text, and get a topic to discuss it, with a short summary to talk from.
+- **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation, and a text or page you make a topic from, goes to the LLM provider you choose, with your own API key.
 
 The app runs locally for a single user; there is no account, server, or deployment.
 
@@ -99,6 +100,15 @@ Besides the built-in topics you can add your own on the home page: a title and t
 (who your partner is and what you talk about, in any language). Your partner's first line can be
 typed in or left empty, in which case the LLM writes it. An own topic can be deleted; the
 conversations held on it stay in History.
+
+A topic can also be made from something you read: choose "From a link or text" and paste a
+link or the text itself, in any language. A link is opened by the app on your computer and the
+page's readable text is taken from it ([trafilatura](https://github.com/adbar/trafilatura));
+pages that need a login or load their text with JavaScript cannot be read, and links to videos
+are refused, so paste the text or the transcript instead. The LLM writes a title, your
+partner's first line, and a summary of at most eight sentences in plain English. Only that
+summary is kept: your partner knows it during the conversation, and you can open it on the
+practice page. The text itself is not stored, and at most 30,000 characters of it are used.
 
 Each line is saved in the local database as it is said, so a conversation is on the History
 page even if the app is closed in the middle of it. A conversation can be deleted there.
@@ -181,7 +191,7 @@ cd desktop && npm test          # unit tests (Vitest)
 ```
 
 The backend tests never call a real LLM, Whisper, or Kokoro, and never reach the network. The
-exception is five "live" tests that send real requests to a model and check the shape of its
+exception is six "live" tests that send real requests to a model and check the shape of its
 replies; they run only when asked for, with a key in `backend/.env`:
 
 ```bash
