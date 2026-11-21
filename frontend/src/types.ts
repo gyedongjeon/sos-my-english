@@ -94,6 +94,27 @@ export interface SavedCorrection {
   practiced_at: string | null
 }
 
+/** A sentence pattern and how the learner has done on it. */
+export interface PatternStatus {
+  id: string
+  /** CEFR level, A1 to C2. */
+  level: string
+  pattern: string
+  use: string
+  example: string
+  /** Finished rounds, and the score of the last one. */
+  sessions: number
+  last_correct: number | null
+  last_total: number | null
+  practiced_at: string | null
+}
+
+/** One sentence of a round: shown in the learner's language, said in English. */
+export interface Exercise {
+  prompt: string
+  answer: string
+}
+
 export type Phase = 'idle' | 'transcribing' | 'thinking' | 'reviewing'
 
 /** A model the app downloads on first use, and how far its download is. */

@@ -3,6 +3,8 @@ import ConversationView from '../views/ConversationView.vue'
 import CorrectionsView from '../views/CorrectionsView.vue'
 import HistoryView from '../views/HistoryView.vue'
 import HomeView from '../views/HomeView.vue'
+import PatternDrillView from '../views/PatternDrillView.vue'
+import PatternsView from '../views/PatternsView.vue'
 import PracticeView from '../views/PracticeView.vue'
 import SettingsView from '../views/SettingsView.vue'
 
@@ -15,6 +17,8 @@ export default createRouter({
     { path: '/topics/:id(\\d+)', name: 'practice', component: PracticeView, props: idProp },
     { path: '/history', name: 'history', component: HistoryView },
     { path: '/history/:id(\\d+)', name: 'conversation', component: ConversationView, props: idProp },
+    { path: '/patterns', name: 'patterns', component: PatternsView },
+    { path: '/patterns/:id', name: 'pattern', component: PatternDrillView, props: true },
     { path: '/corrections', name: 'corrections', component: CorrectionsView },
     { path: '/settings', name: 'settings', component: SettingsView },
     { path: '/:pathMatch(.*)*', redirect: '/' },

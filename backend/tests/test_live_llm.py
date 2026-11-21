@@ -86,3 +86,32 @@ def test_a_topic_made_from_an_article_in_another_language_is_in_english(client):
     assert len(topic["title"]) <= 80
     assert "\n" not in topic["opener"] and "*" not in topic["opener"]
     assert topic["opener"].rstrip().endswith("?")
+
+
+def test_pattern_sentences_are_in_the_learners_language_with_english_answers(client):
+    client.put("/api/settings", json={"feedback_language": "Korean"})
+    response = client.post("/api/patterns/should-have/exercises")
+    assert response.status_code == 200, response.text
+    exercises = response.json()
+    assert re.search("[가-힣]", exercises["note"])
+    assert len(exercises["items"]) == 5
+    for item in exercises["items"]:
+        assert re.search("[가-힣]", item["prompt"]), item
+        assert not re.search("[가-힣]", item["answer"]), item
+        assert "should" in item["answer"].lower() and "have" in item["answer"].lower().replace("'ve", " have"), item
+
+
+def test_a_pattern_sentence_is_judged_by_its_meaning_and_grammar_not_by_the_model_answer(client):
+    client.put("/api/settings", json={"feedback_language": "Korean"})
+    shown = {"prompt": "더 일찍 떠났어야 했어.", "answer": "I should have left earlier."}
+
+    def judge(said: str) -> dict:
+        response = client.post("/api/patterns/should-have/check", json={**shown, "said": said})
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    wrong = judge("I should have leave more early")
+    assert wrong["correct"] is False
+    assert re.search("[가-힣]", wrong["explanation"]) and not re.search("[가-힣]", wrong["improved"])
+    # Other words than the model answer's, but right.
+    assert judge("I should have gone sooner")["correct"] is True

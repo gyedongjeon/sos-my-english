@@ -12,6 +12,7 @@ from .db import init_db
 from .history import router as history_router
 from .models import router as models_router
 from .paths import FRONTEND_DIST
+from .patterns import router as patterns_router
 from .settings import router as settings_router
 from .speech import synthesize
 from .topics import router as topics_router
@@ -28,6 +29,7 @@ app = FastAPI(title="sos-my-english", lifespan=lifespan)
 app.include_router(corrections_router)
 app.include_router(history_router)
 app.include_router(models_router)
+app.include_router(patterns_router)
 app.include_router(settings_router)
 app.include_router(topics_router)
 

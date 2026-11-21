@@ -28,7 +28,8 @@ onMounted(async () => {
           <span><span class="font-extrabold text-primary">SOS</span> <span class="font-medium">My English</span></span>
         </RouterLink>
         <ul class="menu menu-horizontal ml-auto gap-1 px-0">
-          <li><RouterLink :class="LINK" to="/" exact-active-class="bg-primary text-primary-content hover:bg-primary">Practice</RouterLink></li>
+          <li><RouterLink :class="LINK" to="/" exact-active-class="bg-primary text-primary-content hover:bg-primary">Conversation</RouterLink></li>
+          <li><RouterLink :class="LINK" to="/patterns" active-class="bg-primary text-primary-content hover:bg-primary">Patterns</RouterLink></li>
           <li><RouterLink :class="LINK" to="/corrections" active-class="bg-primary text-primary-content hover:bg-primary">Corrections</RouterLink></li>
           <li><RouterLink :class="LINK" to="/history" active-class="bg-primary text-primary-content hover:bg-primary">History</RouterLink></li>
           <li><RouterLink :class="LINK" to="/settings" active-class="bg-primary text-primary-content hover:bg-primary">Settings</RouterLink></li>

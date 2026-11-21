@@ -376,4 +376,16 @@ def init_db() -> None:
         # added after the first conversations were saved.
         _add_column(conn, "messages", "practiced", "INTEGER NOT NULL DEFAULT 0")
         _add_column(conn, "messages", "practiced_at", "TEXT")
+        # The learner's progress on a sentence pattern; the patterns themselves are in the code.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pattern_progress (
+                pattern_id TEXT PRIMARY KEY,
+                sessions INTEGER NOT NULL DEFAULT 0,
+                last_correct INTEGER,
+                last_total INTEGER,
+                practiced_at TEXT
+            )
+            """
+        )
         conn.execute("CREATE INDEX IF NOT EXISTS messages_by_conversation ON messages (conversation_id, id)")
