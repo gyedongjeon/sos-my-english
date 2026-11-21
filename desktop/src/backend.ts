@@ -1,6 +1,9 @@
 // How the Python backend is started: the arguments for uv and the environment it runs in.
 import { join } from 'node:path'
 
+/** The Python the packaged app installs and runs on; `requires-python` allows it and newer. */
+export const PYTHON_VERSION = '3.12'
+
 export interface BackendOptions {
   /** The folder with the backend's pyproject.toml. */
   project: string
@@ -30,6 +33,9 @@ export function backendLaunch({ project, frontend, userData, port, env }: Backen
     launchEnv.UV_PYTHON_INSTALL_DIR = join(userData, 'python')
     // The packaged app needs only what runs the server, not the test tools.
     args.push('--frozen', '--no-dev')
+    // With a Python folder of its own, uv would install the newest Python, which the locked
+    // packages may not have builds for yet. Use the version the project is developed on.
+    args.push('--python', PYTHON_VERSION)
   }
   args.push('uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(port))
   return { args, env: launchEnv }
