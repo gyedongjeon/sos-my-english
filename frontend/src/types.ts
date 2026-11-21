@@ -115,6 +115,32 @@ export interface Exercise {
   answer: string
 }
 
+/** One sentence of a video, with the seconds between which it is said. */
+export interface VideoLine {
+  start: number
+  end: number
+  text: string
+}
+
+/** A saved video in the list. */
+export interface VideoSummary {
+  id: number
+  /** YouTube's own id of the video. */
+  video_id: string
+  title: string
+  channel: string
+  language: string
+  /** The subtitles were made automatically by YouTube. */
+  generated: boolean
+  added_at: string
+  sentences: number
+}
+
+/** A saved video with its sentences. */
+export interface Video extends Omit<VideoSummary, 'sentences'> {
+  lines: VideoLine[]
+}
+
 export type Phase = 'idle' | 'transcribing' | 'thinking' | 'reviewing'
 
 /** A model the app downloads on first use, and how far its download is. */
