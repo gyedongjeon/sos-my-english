@@ -72,6 +72,20 @@ export interface ConversationSummary {
   corrections: number
 }
 
+/** A correction made in a saved conversation, and how often it was practised since. */
+export interface SavedCorrection {
+  /** The id of the learner's line it was made on. */
+  id: number
+  conversation_id: number
+  title: string
+  original: string
+  improved: string
+  explanation: string
+  /** How many times the better sentence was said right, and when it last was. */
+  practiced: number
+  practiced_at: string | null
+}
+
 export type Phase = 'idle' | 'transcribing' | 'thinking' | 'reviewing'
 
 /** A model the app downloads on first use, and how far its download is. */

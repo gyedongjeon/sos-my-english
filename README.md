@@ -20,6 +20,7 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **Corrections as you go**: after each thing you say, the most valuable fix is shown with the better sentence and why, and you can hear the better sentence.
 - **How clearly you spoke**: each line shows a clarity score, the words that were hard to recognize, and your pace.
 - **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
+- **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
 - **Explanations in your language**: corrections are explained in Korean, Japanese, Chinese, Spanish, and more; the conversation stays in English.
 - **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation goes to the LLM provider you choose, with your own API key.
@@ -99,6 +100,14 @@ and pace) and a short review written by the LLM from the whole conversation and 
 in your feedback language. It is saved with the conversation, and a conversation that was not
 wrapped up can be summarized later from the History page. Saying more after a summary drops it,
 so it can be written again for the whole conversation.
+
+### Practising corrections
+The Corrections page lists the fixes from all saved conversations. "Say it" records you, the
+recording is transcribed locally like any other line, and the words are compared with the better
+sentence: punctuation and capitals are ignored, "I'm" equals "I am", and the sentence may be part
+of something longer. A match is counted ("Said right ×2"); otherwise the page shows what was heard
+and which words were missing. Speech recognition mishears too, so a try can be counted by hand.
+No LLM is used for this. Deleting a conversation removes its corrections.
 
 ### Speech-to-text
 What you say is transcribed locally with [Whisper](https://github.com/SYSTRAN/faster-whisper): no

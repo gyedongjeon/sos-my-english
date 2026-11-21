@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import ConversationView from '../views/ConversationView.vue'
+import CorrectionsView from '../views/CorrectionsView.vue'
 import HistoryView from '../views/HistoryView.vue'
 import HomeView from '../views/HomeView.vue'
 import PracticeView from '../views/PracticeView.vue'
@@ -14,6 +15,7 @@ export default createRouter({
     { path: '/topics/:id(\\d+)', name: 'practice', component: PracticeView, props: idProp },
     { path: '/history', name: 'history', component: HistoryView },
     { path: '/history/:id(\\d+)', name: 'conversation', component: ConversationView, props: idProp },
+    { path: '/corrections', name: 'corrections', component: CorrectionsView },
     { path: '/settings', name: 'settings', component: SettingsView },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

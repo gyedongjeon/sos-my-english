@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from .corrections import router as corrections_router
 from .db import get_connection, init_db
 from .history import router as history_router
 from .models import router as models_router
@@ -23,6 +24,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="sos-my-english", lifespan=lifespan)
+app.include_router(corrections_router)
 app.include_router(history_router)
 app.include_router(models_router)
 app.include_router(settings_router)

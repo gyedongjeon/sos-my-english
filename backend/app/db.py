@@ -48,6 +48,12 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
+def _add_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    """Add a column to a table made by an earlier version of the app, unless it is there."""
+    if column not in [found["name"] for found in conn.execute(f"PRAGMA table_info({table})")]:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def init_db() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with get_connection() as conn:
@@ -82,8 +88,7 @@ def init_db() -> None:
         )
         # `review` (JSON, written when a conversation is wrapped up) was added after the first
         # conversations were saved.
-        if "review" not in [column["name"] for column in conn.execute("PRAGMA table_info(conversations)")]:
-            conn.execute("ALTER TABLE conversations ADD COLUMN review TEXT")
+        _add_column(conn, "conversations", "review", "TEXT")
         # One line of a conversation, in the order they were said. The delivery columns and the
         # correction columns are filled for the learner's lines only.
         conn.execute(
@@ -98,8 +103,14 @@ def init_db() -> None:
                 words_per_minute INTEGER,
                 correction_original TEXT,
                 correction_improved TEXT,
-                correction_explanation TEXT
+                correction_explanation TEXT,
+                practiced INTEGER NOT NULL DEFAULT 0,
+                practiced_at TEXT
             )
             """
         )
+        # How often a correction's better sentence was said correctly afterwards, and when last;
+        # added after the first conversations were saved.
+        _add_column(conn, "messages", "practiced", "INTEGER NOT NULL DEFAULT 0")
+        _add_column(conn, "messages", "practiced_at", "TEXT")
         conn.execute("CREATE INDEX IF NOT EXISTS messages_by_conversation ON messages (conversation_id, id)")
