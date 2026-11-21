@@ -1,5 +1,6 @@
 """The tutor's side of a spoken conversation: the next line, and a fix for what was just said."""
 
+import string
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -33,10 +34,11 @@ You are a friendly English conversation partner helping a non-native speaker pra
 speaking. You are having a spoken conversation in this situation:
 {situation}
 
-You will get the conversation so far. The learner's lines are speech-recognition
-transcripts: ignore missing punctuation and capitalization, and do not treat an obvious
-recognition error (a word that makes no sense where a similar-sounding word would) as the
-learner's mistake.
+You will get the conversation so far. The learner spoke their lines aloud; you see
+speech-recognition transcripts. Punctuation, capitalization, and spelling were chosen by the
+recognizer, not by the learner. Never correct punctuation, capitalization, or spelling, and
+do not treat an obvious recognition error (a word that makes no sense where a
+similar-sounding word would) as the learner's mistake.
 
 reply: stay in the situation and respond to what the learner just said, then keep the
 conversation going, usually with one question. Keep it easy to follow by ear: one or two
@@ -47,12 +49,19 @@ correct the learner here.
 correction: look only at the learner's latest message. If it has a grammar mistake, a wrong
 word, or phrasing a fluent speaker would not use, give the single most valuable fix: quote
 what they said, give the better version, and explain why in one or two sentences. If it is
-already fine, use null; do not invent a problem.
+already fine, or the only difference would be punctuation or capitals, use null; do not
+invent a problem. In "explanation", talk about what to say, not how to write it.
 
 Write "explanation" in {language}. Keep "reply", "original", and "improved" in English.
 
 Reply with a single JSON object matching this schema, and nothing else:
 {schema}"""
+
+
+def _spoken(text: str) -> list[str]:
+    """The words of a sentence as they are heard: no punctuation at their edges, no capitals."""
+    words = (word.strip(string.punctuation + "“”‘’…") for word in text.lower().replace("’", "'").split())
+    return [word for word in words if word]
 
 
 def tutor_reply(situation: str, messages: list[Message]) -> TutorReply:
@@ -68,4 +77,9 @@ def tutor_reply(situation: str, messages: list[Message]) -> TutorReply:
         # A short line needs little reasoning; keep the wait short.
         reasoning_effort="low",
     )
-    return parse_json_reply(reply, TutorReply)
+    result = parse_json_reply(reply, TutorReply)
+    fix = result.correction
+    if fix and _spoken(fix.original) == _spoken(fix.improved):
+        # Only punctuation or capitals changed, which the learner cannot say.
+        result.correction = None
+    return result

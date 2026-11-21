@@ -78,3 +78,18 @@ def test_reply_needs_something_the_learner_just_said(client, model):
 
 def test_reply_for_an_unknown_topic_is_not_found(client, model):
     assert client.post("/api/reply", json={"topic_id": 999, "messages": MESSAGES}).status_code == 404
+
+
+def test_a_fix_of_punctuation_only_is_dropped(client, model):
+    # The learner spoke; punctuation and capitals come from speech recognition, not from them.
+    said = [MESSAGES[0], {"role": "learner", "text": "I'm good and you"}]
+    fix = {"original": "I'm good and you", "improved": "I'm good, and you?", "explanation": "Add a question mark."}
+    model.reply = json.dumps({"reply": "I'm doing well, thanks!", "correction": fix})
+    response = client.post("/api/reply", json={"topic_id": 1, "messages": said})
+    assert response.json() == {"reply": "I'm doing well, thanks!", "correction": None}
+
+
+def test_the_model_is_told_the_learner_spoke(client, model):
+    model.reply = json.dumps({"reply": "Nice!", "correction": None})
+    client.post("/api/reply", json={"topic_id": 1, "messages": MESSAGES})
+    assert "Never correct punctuation" in model.system
