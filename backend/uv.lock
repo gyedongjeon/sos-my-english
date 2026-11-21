@@ -434,6 +434,15 @@ wheels = [
 ]
 
 [[package]]
+name = "defusedxml"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/d5/c66da9b79e5bdb124974bfe172b4daf3c984ebd9c2a06e2b8a4dc7331c72/defusedxml-0.7.1.tar.gz", hash = "sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69", size = 75520, upload-time = "2021-03-08T10:59:26.269Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61", size = 25604, upload-time = "2021-03-08T10:59:24.45Z" },
+]
+
+[[package]]
 name = "dlinfo"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2054,6 +2063,7 @@ dependencies = [
     { name = "tenacity" },
     { name = "trafilatura" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "youtube-transcript-api" },
 ]
 
 [package.dev-dependencies]
@@ -2074,6 +2084,7 @@ requires-dist = [
     { name = "tenacity", specifier = ">=9.2.1" },
     { name = "trafilatura", specifier = ">=2.3.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
+    { name = "youtube-transcript-api", specifier = ">=1.2" },
 ]
 
 [package.metadata.requires-dev]
@@ -2537,6 +2548,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/af/19fbdce41412e1b96825544cc52cd7029d3724655d0988237972f078bd29/yarl-1.25.1-cp314-cp314t-win_amd64.whl", hash = "sha256:734f6e5400352ac4254456003d462866c684703570929cff7a7bde015d0cb371", size = 107386, upload-time = "2026-09-15T19:33:29.009Z" },
     { url = "https://files.pythonhosted.org/packages/2a/99/f6431c8968e89be608d74b28ae2d024521b2953f27dd44e0dece5e04f67a/yarl-1.25.1-cp314-cp314t-win_arm64.whl", hash = "sha256:287e99ff5aa4dc1c7630bfc683ded6f106d756c99dec432a2d7f197a784f51c6", size = 102094, upload-time = "2026-09-15T19:33:31.151Z" },
     { url = "https://files.pythonhosted.org/packages/54/22/318c7980066769c6bcd9221ed2248294f5698811da099013098c670565ed/yarl-1.25.1-py3-none-any.whl", hash = "sha256:681c758b0490f9e96b78e5fa8e8dc6e648e9185bb6eaebe73183c33ea0c445f3", size = 63617, upload-time = "2026-09-15T19:34:59.616Z" },
+]
+
+[[package]]
+name = "youtube-transcript-api"
+version = "1.2.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "defusedxml" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/01/4d/e5ab63c432a4a818ec5ca9eb18584472653bbdd845cc46bf9d227bad6c4d/youtube_transcript_api-1.2.5.tar.gz", hash = "sha256:5e750bd1bac188c1b4afeaf20464ba4dd7a5fb05617f48463f9faa5bace683cc", size = 470631, upload-time = "2026-11-05T11:23:21.571Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cb/ee/6463d3dafe3bf671af6b8c149cd746d4a48f43eb23de4b906f8e010b796f/youtube_transcript_api-1.2.5-py3-none-any.whl", hash = "sha256:e79323bcb2daebed25773fef51a8dd10fee2ff39fb5993dccbe060470d6721ea", size = 485658, upload-time = "2026-11-05T11:23:20.365Z" },
 ]
 
 [[package]]
