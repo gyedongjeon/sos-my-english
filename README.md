@@ -22,7 +22,7 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
 - **40 topics in 9 categories**: everyday chat, work, school, shopping, food, travel, services, home, and giving your opinion.
 - **Sentence patterns by level**: 100 patterns from A1 to C2. You see a sentence in your own language and say it in English, five sentences a round, and each one is checked.
-- **Study with YouTube videos**: paste a link and listen to the video one sentence at a time, with repeat, slower speeds, and the text hidden or shown. Say a sentence after the speaker to see which words came through, and search all your videos for a phrase to hear how it is used.
+- **Study with YouTube videos**: paste a link and listen to the video one sentence at a time, with repeat, slower speeds, and the text hidden or shown. Say a sentence after the speaker to see which words came through, and search all your videos for a phrase to hear how it is used. Mark an expression in a sentence to turn it into a pattern of your own and practise it.
 - **Your own topics**: add the situations you need (a job interview, renting a car, a call with a client) next to the built-in ones.
 - **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
@@ -152,6 +152,13 @@ sentence keeps its best score.
 all saved videos; a result opens its video at that sentence, so you can hear how the phrase is
 used elsewhere.
 
+**Your own patterns.** "Make a pattern" shows the chosen sentence word by word; click the
+first and the last word of the expression you want. The LLM turns it into a formula such as
+"the closest I've ever gotten to + noun/-ing" with a note on its use, and it is saved under
+"Yours" on the Patterns page with the sentence as its example. It is practised like any other
+pattern, links back to its place in the video, and stays when the video is deleted. Only the
+sentence and the marked part are sent to the LLM.
+
 - The subtitles are read the way YouTube's own page reads them, not through an official
   interface, so this can stop working when YouTube changes something. A video whose owner does
   not allow embedding cannot be played.
@@ -230,7 +237,7 @@ cd desktop && npm test          # unit tests (Vitest)
 ```
 
 The backend tests never call a real LLM, Whisper, or Kokoro, and never reach the network. The
-exception is eight "live" tests that send real requests to a model and check the shape of its
+exception is nine "live" tests that send real requests to a model and check the shape of its
 replies; they run only when asked for, with a key in `backend/.env`:
 
 ```bash
