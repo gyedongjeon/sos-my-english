@@ -10,7 +10,7 @@
     "frontend": "npm --prefix ../frontend install && npm --prefix ../frontend run build",
     "compile": "tsc",
     "test": "vitest run",
-    "dev": "npm run frontend && npm run compile && electron .",
+    "dev": "npm run frontend && npm run compile && node scripts/name-dev-app.mjs && electron .",
     "uv": "node scripts/fetch-uv.mjs",
     "package": "npm run uv && npm run frontend && npm run compile && electron-builder --dir",
     "dist": "npm run uv && npm run frontend && npm run compile && electron-builder"
