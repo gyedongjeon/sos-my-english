@@ -19,6 +19,7 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **Listening first**: your partner's reply is read aloud, and its text stays hidden until you ask for it.
 - **Corrections as you go**: after each thing you say, the most valuable fix is shown with the better sentence and why, and you can hear the better sentence.
 - **How clearly you spoke**: each line shows a clarity score, the words that were hard to recognize, and your pace.
+- **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
 - **Explanations in your language**: corrections are explained in Korean, Japanese, Chinese, Spanish, and more; the conversation stays in English.
 - **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation goes to the LLM provider you choose, with your own API key.
@@ -93,6 +94,12 @@ partner's next line together with at most one correction of what you just said.
 Each line is saved in the local database as it is said, so a conversation is on the History
 page even if the app is closed in the middle of it. A conversation can be deleted there.
 
+**Wrap up** ends a conversation with a summary: its numbers (turns, corrections, average clarity
+and pace) and a short review written by the LLM from the whole conversation and its corrections,
+in your feedback language. It is saved with the conversation, and a conversation that was not
+wrapped up can be summarized later from the History page. Saying more after a summary drops it,
+so it can be written again for the whole conversation.
+
 ### Speech-to-text
 What you say is transcribed locally with [Whisper](https://github.com/SYSTRAN/faster-whisper): no
 API key is needed and the audio never leaves your machine. The `small.en` model (~480 MB) is
@@ -157,7 +164,7 @@ cd desktop && npm test          # unit tests (Vitest)
 ```
 
 The backend tests never call a real LLM, Whisper, or Kokoro, and never reach the network. The
-exception is three "live" tests that send real requests to a model and check the shape of its
+exception is four "live" tests that send real requests to a model and check the shape of its
 replies; they run only when asked for, with a key in `backend/.env`:
 
 ```bash
