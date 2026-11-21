@@ -63,8 +63,10 @@ writeFileSync(archivePath, archive)
 try {
   if (build.archive.endsWith('.zip')) {
     // The Windows archive holds `uv.exe` and two helpers at its top; only `uv.exe` is needed.
-    // Windows ships a tar that reads zip files.
-    execFileSync('tar', ['-xf', archivePath, '-C', folder, 'uv.exe'])
+    // Windows ships a tar that reads zip files. It is named by its full path, because a tar
+    // from Git (first on the PATH of a Git shell) takes "C:" in a path for a remote host.
+    const tar = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe')
+    execFileSync(tar, ['-xf', archivePath, '-C', folder, 'uv.exe'])
   } else {
     // The archive holds one folder with `uv` and `uvx`; only `uv` is needed.
     const inner = `${build.archive.replace(/\.tar\.gz$/, '')}/uv`
