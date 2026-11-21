@@ -4,6 +4,7 @@ import { api } from '../api'
 import CorrectionCard from '../components/CorrectionCard.vue'
 import DeliveryNote from '../components/DeliveryNote.vue'
 import MorseSignal from '../components/MorseSignal.vue'
+import ReviewCard from '../components/ReviewCard.vue'
 import { useRecorder } from '../composables/useRecorder'
 import { useSpeech } from '../composables/useSpeech'
 import { percent, useModelsStore } from '../stores/models'
@@ -70,6 +71,11 @@ async function stopSpeaking() {
   hear(await store.say(audio))
 }
 
+function wrapUp() {
+  speech.stop()
+  void store.wrapUp()
+}
+
 async function retryReply() {
   hear(await store.requestReply())
 }
@@ -89,7 +95,7 @@ async function load() {
 }
 
 watch(
-  () => store.messages.length,
+  () => [store.messages.length, store.review],
   async () => {
     await nextTick()
     bottom.value?.scrollIntoView?.({ behavior: 'smooth', block: 'end' })
@@ -151,10 +157,20 @@ onBeforeUnmount(() => {
               — {{ percent(recognitionDownload) }}%</template
             >… What you said is transcribed as soon as it is done.
           </template>
+          <template v-else-if="store.phase === 'reviewing'">Writing your summary…</template>
           <template v-else>
             {{ store.phase === 'transcribing' ? 'Listening to what you said…' : 'Your partner is thinking…' }}
           </template>
         </div>
+
+        <template v-if="store.review">
+          <ReviewCard class="mt-3" :review="store.review" :messages="store.messages" @hear="speech.speak" />
+          <p class="mt-1 text-sm text-base-content/60">
+            Saved with this conversation in
+            <RouterLink class="link" :to="{ name: 'history' }">History</RouterLink>. Keep talking if you like, and wrap up
+            again for a new summary.
+          </p>
+        </template>
         <div ref="bottom"></div>
       </section>
 
@@ -170,6 +186,7 @@ onBeforeUnmount(() => {
         <template v-else>
           <button class="btn btn-primary btn-lg" :disabled="busy" @click="startSpeaking">Start speaking</button>
           <button v-if="store.awaitingReply && !busy" class="btn btn-lg" @click="retryReply">Ask for the reply again</button>
+          <button v-if="store.canWrapUp" class="btn btn-lg" :disabled="busy" @click="wrapUp">Wrap up</button>
         </template>
       </div>
     </template>

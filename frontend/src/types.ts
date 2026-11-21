@@ -30,6 +30,16 @@ export interface Message {
   delivery?: Delivery | null
 }
 
+/** A review of a whole conversation, written when the learner wraps it up. */
+export interface Review {
+  summary: string
+  /** What went well, and what to work on next; a few short sentences each. */
+  strengths: string[]
+  focus: string[]
+  /** Expressions that would have fit the conversation, with what they mean. */
+  phrases: { english: string; note: string }[]
+}
+
 /** A line of a saved conversation, as the backend returns it. */
 export interface SavedMessage {
   role: 'tutor' | 'learner'
@@ -47,6 +57,8 @@ export interface SavedConversation {
   situation: string
   started_at: string
   messages: SavedMessage[]
+  /** Written when the conversation is wrapped up; null until then. */
+  review: Review | null
 }
 
 /** A saved conversation in the history list. */
@@ -60,7 +72,7 @@ export interface ConversationSummary {
   corrections: number
 }
 
-export type Phase = 'idle' | 'transcribing' | 'thinking'
+export type Phase = 'idle' | 'transcribing' | 'thinking' | 'reviewing'
 
 /** A model the app downloads on first use, and how far its download is. */
 export interface ModelStatus {
