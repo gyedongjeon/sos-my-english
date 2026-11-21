@@ -115,9 +115,12 @@ correct: true when what the learner said means what the shown sentence means, us
 pattern, and has no mistake in grammar or word choice that a fluent speaker would notice. It
 does not have to match the model answer: other words and a different order are fine.
 improved: the sentence as it should be said, in English. Stay as close to the learner's own
-words as a correct sentence allows; when it was correct, repeat what the learner said.
+words as a correct sentence allows; when it was correct, repeat what the learner said. When
+the learner said something that means something else than the shown sentence, give the model
+answer instead.
 explanation: when it was not correct, one or two sentences in {language} on what to change
-and why, talking about what to say, not how to write it. When it was correct, null.
+and why, talking about what to say, not how to write it; when the meaning was different, say
+so first. When it was correct, null.
 
 Reply with a single JSON object matching this schema, and nothing else:
 {schema}"""
