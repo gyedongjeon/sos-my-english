@@ -123,3 +123,64 @@ def test_a_conversation_on_a_built_in_topic_has_no_background(client, monkeypatc
     client.post(f"/api/conversations/{started['id']}/messages", json={"text": "It was good."})
     client.post(f"/api/conversations/{started['id']}/reply")
     assert "Background" not in seen["system"]
+
+
+PAGE = "<html><head><title>Council closes main street</title></head><body><article><p>%s</p></article></body></html>"
+
+
+@pytest.fixture
+def web(monkeypatch):
+    """The web serves `web.pages[url]`; any other address cannot be reached."""
+
+    def fetch_url(url, **kwargs):
+        fetch_url.asked.append(url)
+        return fetch_url.pages.get(url)
+
+    fetch_url.pages, fetch_url.asked = {"https://news.example/street": PAGE % ARTICLE}, []
+    monkeypatch.setattr(topics.trafilatura, "fetch_url", fetch_url)
+    return fetch_url
+
+
+def test_a_topic_is_made_from_the_text_of_a_linked_page(client, writer, web):
+    response = client.post("/api/topics/from-text", json={"url": " https://news.example/street "})
+    assert response.status_code == 201, response.text
+    assert response.json()["title"] == WRITTEN["title"]
+    assert web.asked == ["https://news.example/street"]
+    # The model got the page's readable text, not its markup.
+    assert ARTICLE in writer.user and "<article>" not in writer.user
+
+
+def test_a_link_that_cannot_be_read_is_reported_and_the_model_is_not_asked(client, web, monkeypatch):
+    monkeypatch.setattr(topics, "complete", lambda *args, **kwargs: pytest.fail("The model was asked."))
+    web.pages["https://video.example/watch"] = "<html><body><div id='player'></div></body></html>"
+    for url in ("https://video.example/watch", "https://gone.example/"):
+        response = client.post("/api/topics/from-text", json={"url": url})
+        assert response.status_code == 422
+        assert "Paste the text instead" in response.json()["detail"]
+
+
+def test_only_web_links_are_followed(client, writer, web):
+    for url in ("file:///etc/hosts", "ftp://news.example/street", "news.example/street"):
+        assert client.post("/api/topics/from-text", json={"url": url}).status_code == 422
+    assert web.asked == []
+
+
+def test_a_very_long_page_is_cut_to_what_the_model_is_given(client, writer, web):
+    web.pages["https://news.example/long"] = PAGE % ("A sentence about the street. " * 3000)
+    assert client.post("/api/topics/from-text", json={"url": "https://news.example/long"}).status_code == 201
+    assert len(writer.user) < topics.MAX_SOURCE + 100
+
+
+def test_a_text_or_a_link_is_needed_but_not_both(client, writer, web):
+    assert client.post("/api/topics/from-text", json={}).status_code == 422
+    both = {"text": ARTICLE, "url": "https://news.example/street"}
+    assert client.post("/api/topics/from-text", json=both).status_code == 422
+
+
+def test_a_link_to_a_video_is_refused_because_only_the_page_around_it_can_be_read(client, web, monkeypatch):
+    monkeypatch.setattr(topics, "complete", lambda *args, **kwargs: pytest.fail("The model was asked."))
+    for url in ("https://www.youtube.com/watch?v=abc", "https://youtu.be/abc", "https://m.youtube.com/watch?v=abc"):
+        response = client.post("/api/topics/from-text", json={"url": url})
+        assert response.status_code == 422
+        assert "video" in response.json()["detail"] and "transcript" in response.json()["detail"]
+    assert web.asked == []
