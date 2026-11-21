@@ -319,6 +319,8 @@ def init_db() -> None:
         _add_column(conn, "topics", "category", "TEXT")
         # Adds the built-in topics a database of an earlier version does not have yet. A title the
         # learner already used for a topic of their own is left to them.
+        # What the tutor knows besides the situation: the summary of the text a topic was made from.
+        _add_column(conn, "topics", "background", "TEXT")
         # Only the missing ones are inserted: an insert that is ignored still uses up an id.
         known = {row["title"] for row in conn.execute("SELECT title FROM topics")}
         conn.executemany(
@@ -340,13 +342,16 @@ def init_db() -> None:
                 title TEXT NOT NULL,
                 situation TEXT NOT NULL,
                 started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-                review TEXT
+                review TEXT,
+                background TEXT
             )
             """
         )
         # `review` (JSON, written when a conversation is wrapped up) was added after the first
         # conversations were saved.
         _add_column(conn, "conversations", "review", "TEXT")
+        # A copy of the topic's background, kept like its title and situation.
+        _add_column(conn, "conversations", "background", "TEXT")
         # One line of a conversation, in the order they were said. The delivery columns and the
         # correction columns are filled for the learner's lines only.
         conn.execute(

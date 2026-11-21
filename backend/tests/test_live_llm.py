@@ -68,3 +68,21 @@ def test_the_opening_line_of_an_own_topic_is_short_plain_english(client):
     assert 2 <= len(opener) <= 400
     assert "\n" not in opener and "*" not in opener
     assert not re.search("[가-힣]", opener)
+
+
+def test_a_topic_made_from_an_article_in_another_language_is_in_english(client):
+    article = (
+        "서울시는 다음 달부터 한강 공원에서 전동 킥보드 운행을 전면 금지한다고 밝혔다. "
+        "최근 2년간 공원 내 킥보드 사고가 세 배로 늘어난 데 따른 조치다. "
+        "시민단체는 보행자 안전을 위해 필요한 결정이라고 환영했지만, 공유 킥보드 업체들은 "
+        "이용자 불편과 매출 감소를 우려하며 전용 도로를 만들어 달라고 요구했다. "
+        "서울시는 6개월간 시범 운영한 뒤 계속할지 결정할 계획이다."
+    )
+    response = client.post("/api/topics/from-text", json={"text": article})
+    assert response.status_code == 201, response.text
+    topic = response.json()
+    for field in ("title", "situation", "background", "opener"):
+        assert topic[field].strip() and not re.search("[가-힣]", topic[field]), field
+    assert len(topic["title"]) <= 80
+    assert "\n" not in topic["opener"] and "*" not in topic["opener"]
+    assert topic["opener"].rstrip().endswith("?")
