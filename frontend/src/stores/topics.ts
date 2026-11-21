@@ -9,6 +9,11 @@ export interface TopicDraft {
   opener: string
 }
 
+/** The category the learner's own topics are shown under. */
+export const OWN = 'Yours'
+
+const categoryOf = (topic: Topic) => (topic.custom ? OWN : (topic.category ?? 'Other'))
+
 /** The topics to practise: the built-in ones, then the learner's own. */
 export const useTopicsStore = defineStore('topics', {
   state: () => ({
@@ -17,7 +22,20 @@ export const useTopicsStore = defineStore('topics', {
     error: '',
     adding: false,
     addError: '',
+    // The category chosen on the home page; kept while the app is open.
+    category: '',
   }),
+  getters: {
+    /** The categories that have topics, in the order the backend lists them; the learner's own last. */
+    categories: (state): string[] => [...new Set(state.topics.map(categoryOf))],
+    /** The category whose topics are shown: the chosen one, or the first while none is or it is gone. */
+    active(state): string {
+      return this.categories.includes(state.category) ? state.category : (this.categories[0] ?? '')
+    },
+    shown(state): Topic[] {
+      return state.topics.filter((topic) => categoryOf(topic) === this.active)
+    },
+  },
   actions: {
     async load() {
       this.loading = true
@@ -38,6 +56,7 @@ export const useTopicsStore = defineStore('topics', {
       try {
         const json = { title: draft.title, situation: draft.situation, opener: draft.opener.trim() || null }
         this.topics.push(await api<Topic>('/topics', { method: 'POST', json }))
+        this.category = OWN
         return true
       } catch (e) {
         this.addError = (e as Error).message

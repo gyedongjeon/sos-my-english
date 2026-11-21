@@ -8,7 +8,7 @@ from app import conversation
 from app.db import SEED_TOPICS, get_connection
 from app.llm import LLMError
 
-TITLE, SITUATION, OPENER = SEED_TOPICS[0]
+TITLE, SITUATION, OPENER = SEED_TOPICS[0][:3]
 CORRECTION = {"original": "I go", "improved": "I went", "explanation": "Past tense."}
 DELIVERY = {"clarity": 82, "unclear_words": ["beach"], "words_per_minute": 110}
 

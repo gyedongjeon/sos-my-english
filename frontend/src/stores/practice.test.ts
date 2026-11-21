@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Topic } from '../types'
 import { usePracticeStore } from './practice'
 
-const TOPIC: Topic = { id: 1, title: 'Small talk', situation: 'A relaxed chat.', opener: 'How has your week been?', custom: false }
+const TOPIC: Topic = { id: 1, title: 'Small talk', situation: 'A relaxed chat.', opener: 'How has your week been?', custom: false, category: 'Everyday' }
 const CORRECTION = { original: 'I go', improved: 'I went', explanation: 'Past tense.' }
 const AUDIO = new Blob(['audio'])
 

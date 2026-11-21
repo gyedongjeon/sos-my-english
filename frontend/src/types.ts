@@ -6,6 +6,8 @@ export interface Topic {
   opener: string
   /** Added by the learner, so it can be removed; the built-in topics cannot. */
   custom: boolean
+  /** What a built-in topic is shown under; null for the learner's own. */
+  category: string | null
 }
 
 /** How a line was spoken, measured from the audio by the local Whisper model. */

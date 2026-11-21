@@ -50,13 +50,26 @@ onMounted(() => store.load())
     <div v-else class="grid gap-3">
       <div v-if="store.error" role="alert" class="alert alert-error alert-soft">{{ store.error }}</div>
 
-      <div v-for="topic in store.topics" :key="topic.id" class="card card-border bg-base-100 transition hover:border-primary">
+      <div v-if="store.categories.length > 1" class="flex flex-wrap gap-2" role="tablist" aria-label="Topic categories">
+        <button
+          v-for="category in store.categories"
+          :key="category"
+          role="tab"
+          :aria-selected="category === store.active"
+          class="btn btn-sm rounded-full"
+          :class="category === store.active ? 'btn-primary' : 'btn-ghost bg-base-100'"
+          @click="store.category = category"
+        >
+          {{ category }}
+        </button>
+      </div>
+
+      <div v-for="topic in store.shown" :key="topic.id" class="card card-border bg-base-100 transition hover:border-primary">
         <div class="card-body flex-row flex-wrap items-center gap-3">
           <RouterLink class="flex grow basis-64 items-center gap-4" :to="{ name: 'practice', params: { id: topic.id } }">
             <div class="grow">
               <h2 class="card-title text-lg">
                 {{ topic.title }}
-                <span v-if="topic.custom" class="badge badge-primary badge-soft badge-sm">Yours</span>
               </h2>
               <p class="text-sm text-base-content/60">{{ topic.situation }}</p>
             </div>

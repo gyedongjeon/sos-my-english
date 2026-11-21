@@ -20,6 +20,7 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **Corrections as you go**: after each thing you say, the most valuable fix is shown with the better sentence and why, and you can hear the better sentence.
 - **How clearly you spoke**: each line shows a clarity score, the words that were hard to recognize, and your pace.
 - **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
+- **40 topics in 9 categories**: everyday chat, work, school, shopping, food, travel, services, home, and giving your opinion.
 - **Your own topics**: add the situations you need (a job interview, renting a car, a call with a client) next to the built-in ones.
 - **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
@@ -90,7 +91,8 @@ UI, and is sent only to the chosen provider.
 ## How it works
 ### Conversation
 Each topic sets a situation (small talk, ordering at a café, a meeting at work, ...) and an
-opening line. After each thing you say, the LLM gets the conversation so far and returns your
+opening line. The home page shows the built-in topics one category at a time; the ones under
+Opinions have no role to play and ask you to talk at more length about what you think. After each thing you say, the LLM gets the conversation so far and returns your
 partner's next line together with at most one correction of what you just said.
 
 Besides the built-in topics you can add your own on the home page: a title and the situation

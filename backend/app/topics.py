@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field, StringConstraints
 
-from .db import get_connection
+from .db import CATEGORIES, get_connection
 from .llm import LLMError, complete, parse_json_reply
 
 router = APIRouter(prefix="/api")
@@ -22,6 +22,8 @@ class Topic(BaseModel):
     opener: str
     # Added by the learner, so it can be removed; the built-in topics cannot.
     custom: bool
+    # What a built-in topic is shown under; None for the learner's own.
+    category: str | None = None
 
 
 class NewTopic(BaseModel):
@@ -63,9 +65,12 @@ def _write_opener(title: str, situation: str) -> str:
 
 @router.get("/topics", response_model=list[Topic])
 def list_topics() -> list[Topic]:
+    """The built-in topics category by category, then the learner's own."""
     with get_connection() as conn:
-        rows = conn.execute("SELECT id, title, situation, opener, custom FROM topics ORDER BY id").fetchall()
-    return [Topic(**dict(row)) for row in rows]
+        rows = conn.execute("SELECT id, title, situation, opener, custom, category FROM topics ORDER BY id").fetchall()
+    topics = [Topic(**dict(row)) for row in rows]
+    place = {category: i for i, category in enumerate(CATEGORIES)}
+    return sorted(topics, key=lambda t: (t.custom, place.get(t.category, len(place)), t.id))
 
 
 @router.post("/topics", response_model=Topic, status_code=201)
