@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
+import CorrectionCard from '../components/CorrectionCard.vue'
+import DeliveryNote from '../components/DeliveryNote.vue'
 import MorseSignal from '../components/MorseSignal.vue'
 import { useRecorder } from '../composables/useRecorder'
 import { useSpeech } from '../composables/useSpeech'
@@ -134,25 +136,10 @@ onBeforeUnmount(() => {
               <button class="btn btn-xs" @click="speech.speak(message.text)">Replay</button>
               <button v-if="!showLatest" class="btn btn-xs" @click="showLatest = true">Show text</button>
             </div>
-            <div v-else-if="message.delivery" class="chat-footer mt-1 text-xs text-base-content/60">
-              Clarity {{ message.delivery.clarity }}
-              <template v-if="message.delivery.wordsPerMinute"> · {{ message.delivery.wordsPerMinute }} words/min</template>
-              <template v-if="message.delivery.unclearWords.length">
-                · unclear: {{ message.delivery.unclearWords.join(', ') }}
-              </template>
-            </div>
+            <DeliveryNote v-else-if="message.delivery" :delivery="message.delivery" />
           </div>
 
-          <div v-if="message.correction" class="card card-border ml-auto max-w-[85%] bg-base-100">
-            <div class="card-body gap-1 p-3 text-sm">
-              <p class="text-base-content/60 line-through">{{ message.correction.original }}</p>
-              <p class="font-medium text-success">{{ message.correction.improved }}</p>
-              <p class="text-base-content/70">{{ message.correction.explanation }}</p>
-              <div>
-                <button class="btn btn-xs" @click="speech.speak(message.correction.improved)">Hear it</button>
-              </div>
-            </div>
-          </div>
+          <CorrectionCard v-if="message.correction" :correction="message.correction" @hear="speech.speak" />
         </template>
 
         <div v-if="busy" class="flex items-center gap-2 py-2 text-sm text-base-content/60">

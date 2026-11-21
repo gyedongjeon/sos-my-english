@@ -18,6 +18,10 @@ export const usePracticeStore = defineStore('practice', {
     error: '',
     // Bumped by begin(), so a slow request of an abandoned conversation is ignored.
     session: 0,
+    // The saved conversation these lines go into; it is started with the first thing said.
+    conversationId: null as number | null,
+    // The learner's last line has not reached the saved conversation yet.
+    unsaved: false,
   }),
   getters: {
     /** The learner spoke last: the tutor's reply is missing (it failed) or on its way. */
@@ -30,6 +34,8 @@ export const usePracticeStore = defineStore('practice', {
       this.messages = [{ role: 'tutor', text: topic.opener }]
       this.phase = 'idle'
       this.error = ''
+      this.conversationId = null
+      this.unsaved = false
     },
 
     /** Transcribes what the learner said and gets the tutor's reply; resolves with the reply to read aloud. */
@@ -64,6 +70,7 @@ export const usePracticeStore = defineStore('practice', {
             ? null
             : { clarity: heard.clarity, unclearWords: heard.unclear_words, wordsPerMinute: heard.words_per_minute },
       })
+      this.unsaved = true
       return this.requestReply()
     },
 
@@ -74,10 +81,24 @@ export const usePracticeStore = defineStore('practice', {
       this.error = ''
       this.phase = 'thinking'
       try {
-        const data = await api<{ reply: string; correction: Correction | null }>('/reply', {
-          method: 'POST',
-          json: { topic_id: this.topic.id, messages: this.messages.map(({ role, text }) => ({ role, text })) },
-        })
+        if (this.conversationId === null) {
+          const started = await api<{ id: number }>('/conversations', { method: 'POST', json: { topic_id: this.topic.id } })
+          if (session !== this.session) return null
+          this.conversationId = started.id
+        }
+        const saved = `/conversations/${this.conversationId}`
+        if (this.unsaved) {
+          const { text, delivery } = this.messages[this.messages.length - 1]
+          const spoken = delivery && {
+            clarity: delivery.clarity,
+            unclear_words: delivery.unclearWords,
+            words_per_minute: delivery.wordsPerMinute,
+          }
+          await api(`${saved}/messages`, { method: 'POST', json: { text, delivery: spoken ?? null } })
+          if (session !== this.session) return null
+          this.unsaved = false
+        }
+        const data = await api<{ reply: string; correction: Correction | null }>(`${saved}/reply`, { method: 'POST' })
         if (session !== this.session) return null
         this.messages[this.messages.length - 1].correction = data.correction
         this.messages.push({ role: 'tutor', text: data.reply })

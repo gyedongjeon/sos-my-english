@@ -14,12 +14,10 @@ import pytest
 
 pytestmark = pytest.mark.live
 
-OPENER = {"role": "tutor", "text": "Hi! It's good to see you. How has your week been so far?"}
-
-
 def reply_to(client, said: str) -> dict:
-    messages = [OPENER, {"role": "learner", "text": said}]
-    response = client.post("/api/reply", json={"topic_id": 1, "messages": messages})
+    conversation = client.post("/api/conversations", json={"topic_id": 1}).json()
+    client.post(f"/api/conversations/{conversation['id']}/messages", json={"text": said})
+    response = client.post(f"/api/conversations/{conversation['id']}/reply")
     # A reply that does not match the schema is reported as 502 by the endpoint.
     assert response.status_code == 200, response.text
     return response.json()
