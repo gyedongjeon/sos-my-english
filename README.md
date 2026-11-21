@@ -22,7 +22,7 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
 - **40 topics in 9 categories**: everyday chat, work, school, shopping, food, travel, services, home, and giving your opinion.
 - **Sentence patterns by level**: 100 patterns from A1 to C2. You see a sentence in your own language and say it in English, five sentences a round, and each one is checked.
-- **Study with YouTube videos**: paste a link and listen to the video one sentence at a time, with repeat, slower speeds, and the text hidden or shown.
+- **Study with YouTube videos**: paste a link and listen to the video one sentence at a time, with repeat, slower speeds, and the text hidden or shown. Say a sentence after the speaker to see which words came through, and search all your videos for a phrase to hear how it is used.
 - **Your own topics**: add the situations you need (a job interview, renting a car, a call with a client) next to the built-in ones.
 - **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
@@ -141,6 +141,16 @@ saves them in the local database, cut into sentences: a subtitle line breaks whe
 screen, so the lines are joined and cut again at the sentence ends, and each sentence gets the
 seconds between which it is said. Clicking a sentence plays just that part; it can be repeated,
 slowed down, and listened to with the text (and the player's own subtitles) hidden.
+
+**Shadowing.** "Say it after" stops the video and records you saying the sentence you just
+heard. The recording is transcribed locally and compared with the sentence word by word (no
+LLM): the page shows the share of words that came through and marks the ones that did not.
+Punctuation and capitals are ignored, "I've" equals "I have", and "three" equals "3". Each
+sentence keeps its best score.
+
+**Search.** The search box on the Videos page looks for a word or phrase in the subtitles of
+all saved videos; a result opens its video at that sentence, so you can hear how the phrase is
+used elsewhere.
 
 - The subtitles are read the way YouTube's own page reads them, not through an official
   interface, so this can stop working when YouTube changes something. A video whose owner does

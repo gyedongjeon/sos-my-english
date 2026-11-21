@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { api } from '../api'
 import MorseSignal from '../components/MorseSignal.vue'
+import { useRecorder } from '../composables/useRecorder'
 import { useYouTubePlayer } from '../composables/useYouTubePlayer'
+import { useShadowStore } from '../stores/shadow'
 import type { Video } from '../types'
 import { clock, lineAt, stepFrom } from '../video'
 
-// A saved video, listened to one sentence at a time.
+// A saved video, listened to one sentence at a time, and shadowed: said after the speaker.
 const props = defineProps<{ id: number }>()
 
 // A sentence's start is worked out from its subtitle line, so playing starts a moment early.
@@ -19,6 +22,11 @@ const error = ref('')
 const frame = ref<HTMLElement | null>(null)
 const list = ref<HTMLElement | null>(null)
 const player = useYouTubePlayer(frame)
+const route = useRoute()
+const recorder = useRecorder()
+const shadow = useShadowStore()
+// Problems of this page: the microphone.
+const micError = ref('')
 
 // The sentence chosen by the learner; while the video plays on, the one being said.
 const chosen = ref(-1)
@@ -27,11 +35,25 @@ const rate = ref(1)
 const showText = ref(true)
 
 const lines = computed(() => video.value?.lines ?? [])
-const current = computed(() => (player.part.value ? chosen.value : lineAt(lines.value, player.time.value)))
+// The chosen sentence while it plays on its own or before anything was played; otherwise the
+// one being said.
+const current = computed(() =>
+  player.part.value || (chosen.value >= 0 && !player.playing.value) ? chosen.value : lineAt(lines.value, player.time.value),
+)
+// While the video plays on by itself, the sentence being said becomes the chosen one, so
+// that pausing leaves the learner on it.
+watch(
+  () => (!player.part.value && player.playing.value ? lineAt(lines.value, player.time.value) : -1),
+  (said) => {
+    if (said >= 0) chosen.value = said
+  },
+)
+const result = computed(() => (shadow.result?.line === lines.value[current.value]?.id ? shadow.result : null))
 
 function play(index: number) {
   const line = lines.value[index]
   if (!line) return
+  if (index !== chosen.value) shadow.clear()
   chosen.value = index
   player.playPart(Math.max(0, line.start - LEAD), line.end, repeat.value)
 }
@@ -45,11 +67,35 @@ function toggle() {
   else play(current.value < 0 ? 0 : current.value)
 }
 
+// Shadowing is listen, then say: the video is stopped while the learner speaks, or its sound
+// would be recorded too.
+async function startShadowing() {
+  if (current.value < 0) return
+  chosen.value = current.value
+  player.pause()
+  micError.value = ''
+  shadow.clear()
+  try {
+    await recorder.start()
+  } catch {
+    micError.value = 'The microphone is not available. Allow microphone access and try again.'
+  }
+}
+
+async function stopShadowing() {
+  const audio = await recorder.stop()
+  const line = lines.value[chosen.value]
+  if (!audio) micError.value = 'Nothing was recorded. Try again.'
+  else if (line) await shadow.attempt(line, audio)
+}
+
 async function load() {
   loading.value = true
   error.value = ''
   video.value = null
   chosen.value = -1
+  shadow.clear()
+  recorder.release()
   try {
     video.value = await api<Video>(`/videos/${props.id}`)
   } catch (e) {
@@ -58,6 +104,9 @@ async function load() {
     loading.value = false
   }
   if (!video.value) return
+  // A sentence found by the search is opened ready to be played.
+  const wanted = Number(route.query.line)
+  if (Number.isInteger(wanted) && lines.value[wanted]) chosen.value = wanted
   await nextTick()
   await player.open(video.value.video_id)
 }
@@ -78,6 +127,7 @@ watch(current, async (now) => {
 })
 watch(() => props.id, load)
 onMounted(load)
+onBeforeUnmount(() => recorder.release())
 </script>
 
 <template>
@@ -124,6 +174,38 @@ onMounted(load)
             <input v-model="showText" type="checkbox" class="toggle toggle-sm" />
             Show the text
           </label>
+          <button v-if="recorder.recording.value" class="btn btn-error btn-sm" @click="stopShadowing">
+            <span class="inline-block size-2 animate-pulse rounded-full bg-current"></span>
+            Stop
+          </button>
+          <button
+            v-else
+            class="btn btn-sm btn-neutral"
+            :disabled="!player.ready.value || current < 0 || shadow.checking"
+            title="Listen to the sentence, then say it yourself"
+            @click="startShadowing"
+          >
+            Say it after
+          </button>
+        </div>
+
+        <div v-if="shadow.checking" class="mt-2 flex items-center gap-2 text-sm text-base-content/60">
+          <MorseSignal animated /> Listening to what you said…
+        </div>
+        <div v-else-if="result" class="mt-2 rounded-box bg-base-100 p-3 text-sm" aria-live="polite">
+          <p class="font-medium" :class="result.accuracy === 100 ? 'text-success' : 'text-primary'">
+            {{ result.accuracy === 100 ? 'Every word came through!' : `${result.accuracy}% of the words came through.` }}
+          </p>
+          <p class="mt-1 text-base">
+            <template v-for="(word, i) in result.words" :key="i">
+              <span :class="word.heard ? '' : 'rounded bg-primary/15 px-0.5 font-semibold text-primary'">{{ word.text }}</span
+              >{{ ' ' }}
+            </template>
+          </p>
+          <p class="mt-1 text-base-content/60">You said: {{ result.heard }}</p>
+        </div>
+        <div v-if="micError || shadow.error" role="alert" class="alert alert-error alert-soft mt-2">
+          {{ micError || shadow.error }}
         </div>
       </div>
 
@@ -139,6 +221,14 @@ onMounted(load)
             <span class="w-12 shrink-0 text-xs text-base-content/50 tabular-nums">{{ clock(line.start) }}</span>
             <span v-if="showText">{{ line.text }}</span>
             <span v-else class="italic text-base-content/40">Sentence {{ i + 1 }}</span>
+            <span
+              v-if="line.best !== null"
+              class="badge badge-soft badge-sm ml-auto shrink-0"
+              :class="line.best === 100 ? 'badge-success' : 'badge-neutral'"
+              :title="`Shadowed ${line.shadowed} time${line.shadowed === 1 ? '' : 's'}; best ${line.best}%`"
+            >
+              {{ line.best }}%
+            </span>
           </button>
         </li>
       </ol>

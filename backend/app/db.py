@@ -411,9 +411,15 @@ def init_db() -> None:
                 position INTEGER NOT NULL,
                 start REAL NOT NULL,
                 end REAL NOT NULL,
-                text TEXT NOT NULL
+                text TEXT NOT NULL,
+                shadowed INTEGER NOT NULL DEFAULT 0,
+                best INTEGER
             )
             """
         )
+        # How often a sentence was shadowed and the best score (0-100) so far; added after the
+        # first videos were saved.
+        _add_column(conn, "video_lines", "shadowed", "INTEGER NOT NULL DEFAULT 0")
+        _add_column(conn, "video_lines", "best", "INTEGER")
         conn.execute("CREATE INDEX IF NOT EXISTS video_lines_by_video ON video_lines (video, position)")
         conn.execute("CREATE INDEX IF NOT EXISTS messages_by_conversation ON messages (conversation_id, id)")

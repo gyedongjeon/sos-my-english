@@ -122,6 +122,36 @@ export interface VideoLine {
   text: string
 }
 
+/** A sentence of a saved video, and how the learner has done at shadowing it. */
+export interface SavedVideoLine extends VideoLine {
+  id: number
+  /** How often it was shadowed, and the best score so far (0-100); null before the first try. */
+  shadowed: number
+  best: number | null
+}
+
+/** How one try at saying a sentence after the video went. */
+export interface Shadowed {
+  /** The share of the sentence's words that were heard, 0-100. */
+  accuracy: number
+  /** The sentence word by word, with whether each was heard. */
+  words: { text: string; heard: boolean }[]
+  shadowed: number
+  best: number
+}
+
+/** A sentence found in the saved subtitles. */
+export interface VideoHit {
+  id: number
+  /** The saved video it is in (our id and YouTube's), and where. */
+  video: number
+  video_id: string
+  title: string
+  position: number
+  start: number
+  text: string
+}
+
 /** A saved video in the list. */
 export interface VideoSummary {
   id: number
@@ -138,7 +168,7 @@ export interface VideoSummary {
 
 /** A saved video with its sentences. */
 export interface Video extends Omit<VideoSummary, 'sentences'> {
-  lines: VideoLine[]
+  lines: SavedVideoLine[]
 }
 
 export type Phase = 'idle' | 'transcribing' | 'thinking' | 'reviewing'

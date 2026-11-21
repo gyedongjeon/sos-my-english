@@ -16,6 +16,17 @@ ENDINGS = {"n't": " not", "'m": " am", "'re": " are", "'ve": " have", "'ll": " w
 PRONOUNS = {"i", "you", "he", "she", "it", "we", "they", "that", "there", "here", "what", "who", "where", "how"}
 
 
+# Speech recognition writes small numbers as figures or as words; both are heard the same.
+NUMBERS = dict(
+    zip(
+        "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen "
+        "sixteen seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety".split(),
+        [*map(str, range(21)), "30", "40", "50", "60", "70", "80", "90"],
+        strict=True,
+    )
+)
+
+
 class SavedCorrection(BaseModel):
     """A correction made in a saved conversation, and how often it was practised since."""
 
@@ -43,7 +54,8 @@ class Attempt(BaseModel):
 
 
 def _words(text: str) -> list[str]:
-    """The words of a sentence as heard, with short forms spelled out so "I'm" equals "I am"."""
+    """The words of a sentence as heard: short forms spelled out, so "I'm" equals "I am", and
+    small numbers as figures, so "three" equals "3"."""
     words: list[str] = []
     for word in _spoken(text):
         stem, apostrophe, ending = word.rpartition("'")
@@ -56,7 +68,7 @@ def _words(text: str) -> list[str]:
                 if word.endswith(short) and len(word) > len(short):
                     word = word.removesuffix(short) + full
                     break
-        words.extend(word.split())
+        words.extend(NUMBERS.get(part, part) for part in word.split())
     return words
 
 
