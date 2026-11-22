@@ -216,3 +216,10 @@ export interface LLMSettings {
   source: 'app' | 'env' | null
   key_hint: string | null
 }
+
+/** A voice the partner can speak with. */
+export interface VoiceStatus {
+  id: string
+  label: string
+  chosen: boolean
+}
