@@ -34,8 +34,8 @@ class SavedCorrection(BaseModel):
 
     # "m" and the id of the learner's line it was made on, or "p" or "s" and the id of the mistake.
     id: str
-    # Where it comes from: one of the three is set. `title` is the conversation's title, the
-    # pattern's formula, or the video's title.
+    # Where it comes from: one of the three is set, or none for a sentence of a video since
+    # deleted. `title` is the conversation's title, the pattern's formula, or the video's title.
     conversation_id: int | None = None
     pattern_id: str | None = None
     video: int | None = None
@@ -135,9 +135,9 @@ def list_corrections() -> list[SavedCorrection]:
                    practiced, practiced_at, created_at, id
             FROM pattern_mistakes
             UNION ALL
-            SELECT 's' || s.id, NULL, NULL, v.id, l.position, v.title, NULL, s.said, s.improved,
+            SELECT 's' || s.id, NULL, NULL, l.video, l.position, s.title, NULL, s.said, s.improved,
                    s.explanation, s.practiced, s.practiced_at, s.created_at, s.id
-            FROM shadowing_mistakes s JOIN video_lines l ON l.id = s.line JOIN videos v ON v.id = l.video
+            FROM shadowing_mistakes s LEFT JOIN video_lines l ON l.id = s.line
             ORDER BY made_at DESC, row DESC
             """
         ).fetchall()

@@ -144,4 +144,8 @@ describe('the source of a correction', () => {
       query: { line: 7 },
     })
   })
+
+  it('is none for a sentence of a video since deleted', () => {
+    expect(source({ ...saved('s3', 'x'), conversation_id: null })).toBeNull()
+  })
 })

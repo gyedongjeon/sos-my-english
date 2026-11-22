@@ -77,10 +77,14 @@ def test_a_shadowing_mistake_is_practised_like_any_correction(client, video):
     assert corrections(client) == []
 
 
-def test_deleting_the_video_takes_its_mistakes_off_the_list(client, video):
+def test_a_mistake_outlives_its_video_without_a_link_to_it(client, video):
     shadow(client, video["lines"][1], "Write and speak at the time")
     assert client.delete(f"/api/videos/{video['id']}").status_code == 204
-    assert corrections(client) == []
+    [mistake] = corrections(client)
+    assert (mistake["improved"], mistake["title"]) == ("Write and speak at the same time.", "How to learn")
+    assert mistake["video"] is None and mistake["position"] is None
+    tried = client.post(f"/api/corrections/{mistake['id']}/attempts", json={"text": "Write and speak at the same time"})
+    assert tried.json()["matched"] is True
 
 
 def test_every_try_is_logged_and_the_log_outlives_the_video(client, video):

@@ -19,7 +19,12 @@ enough have piled up, the sounds often got wrong can be analysed with the LLM.
   as pattern mistakes do). `GET /api/corrections` lists it with id `s<n>`, the video's title, what
   was heard as `original`, the sentence as `improved`, and an explanation naming the words not
   heard with what was heard in their place: `Not heard: “gaps” (heard “guess”).` It is practised
-  and removed like any correction. Deleting the video removes it.
+  and removed like any correction.
+- **Deleting the video keeps it**, so mistakes keep piling up for the later analysis: the row
+  holds the sentence and the video's title, and only its link to the sentence is dropped
+  (`ON DELETE SET NULL`); the page then shows "From “<title>” (deleted)" without a link. A first
+  version removed it with the video; it was changed during the same session at the requester's
+  choice.
 - **What was heard instead** comes from lining up the sentence's words with the transcription
   (`difflib.SequenceMatcher`); words missed side by side are named together, and a word left out
   is named alone.
@@ -38,9 +43,10 @@ enough have piled up, the sounds often got wrong can be analysed with the LLM.
 
 ## Verification
 
-- `cd backend && uv run pytest`: 244 passed (7 new, in `tests/test_shadowing_mistakes.py`, first
-  run failing), 12 live tests deselected.
-- `cd frontend && npm test`: 122 passed (the new `source` test failed first); `npm run build`
+- `cd backend && uv run pytest`: 244 passed (7 new, in `tests/test_shadowing_mistakes.py`, each
+  first seen failing), 12 live tests deselected.
+- `cd frontend && npm test`: 123 passed (the new `source` tests failed first); `npm run build`
   succeeded.
 - Desktop unchanged.
-- Not verified: the Corrections page in the running app.
+- In the desktop app run from this branch (`cd desktop && npm run dev`), a sentence shadowed
+  below 100% appeared on the Corrections page, and its link opened the video at that sentence.

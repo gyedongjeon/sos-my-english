@@ -597,7 +597,10 @@ def _not_heard(words: list[ShadowedWord], said: list[str]) -> str:
 def shadow(line: int, body: Said) -> Shadowed:
     """Compare what the learner said after the video with the sentence, word by word."""
     with get_connection() as conn:
-        found = conn.execute("SELECT text, shadowed, best FROM video_lines WHERE id = ?", (line,)).fetchone()
+        found = conn.execute(
+            "SELECT l.text, l.shadowed, l.best, v.title FROM video_lines l JOIN videos v ON v.id = l.video WHERE l.id = ?",
+            (line,),
+        ).fetchone()
         if found is None:
             raise HTTPException(status_code=404, detail="Sentence not found")
         left = _words(body.text)
@@ -624,11 +627,11 @@ def shadow(line: int, body: Said) -> Shadowed:
             # Kept with the corrections; a new wrong try replaces the last one, to be practised again.
             conn.execute(
                 """
-                INSERT INTO shadowing_mistakes (line, said, improved, explanation) VALUES (?, ?, ?, ?)
+                INSERT INTO shadowing_mistakes (line, title, said, improved, explanation) VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT (line) DO UPDATE SET
-                    said = excluded.said, improved = excluded.improved, explanation = excluded.explanation,
+                    title = excluded.title, said = excluded.said, improved = excluded.improved, explanation = excluded.explanation,
                     practiced = 0, practiced_at = NULL, created_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
                 """,
-                (line, body.text, found["text"], _not_heard(words, _words(body.text))),
+                (line, found["title"], body.text, found["text"], _not_heard(words, _words(body.text))),
             )
     return Shadowed(accuracy=accuracy, words=words, shadowed=found["shadowed"] + 1, best=best)

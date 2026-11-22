@@ -207,8 +207,9 @@ search asks the LLM up to seven times and takes about ten seconds.
 - The subtitles are read, and YouTube is searched, the way YouTube's own page does it, not
   through an official interface, so this can stop working when YouTube changes something. A video whose owner does
   not allow embedding cannot be played.
-- Subtitles are kept on this computer; deleting a video deletes them and its sentences on the
-  Corrections page, but not the log of your tries at saying them after it. Besides the parts sent to
+- Subtitles are kept on this computer; deleting a video deletes them, but not its sentences on
+  the Corrections page (left without a link to the video) or the log of your tries at saying
+  them after it. Besides the parts sent to
   estimate a level, all of them are sent to the LLM when they have no punctuation (below) and when
   their translation is turned on.
 - **Automatic subtitles.** YouTube's automatic subtitles sometimes have no punctuation, so they

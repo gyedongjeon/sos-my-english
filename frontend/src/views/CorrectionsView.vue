@@ -112,12 +112,10 @@ onBeforeUnmount(() => {
                 <MorseSignal animated /> Listening to what you said…
               </span>
               <span v-if="c.practiced" class="badge badge-success badge-soft">Said right ×{{ c.practiced }}</span>
-              <RouterLink
-                class="link ml-auto text-xs text-base-content/60"
-                :to="source(c)"
-              >
+              <RouterLink v-if="source(c)" class="link ml-auto text-xs text-base-content/60" :to="source(c)!">
                 From “{{ c.title }}”
               </RouterLink>
+              <span v-else class="ml-auto text-xs text-base-content/60">From “{{ c.title }}” (deleted)</span>
               <template v-if="confirming === c.id">
                 <button class="btn btn-error btn-xs" @click="remove(c.id)">Remove for good</button>
                 <button class="btn btn-ghost btn-xs" @click="confirming = null">Keep</button>
