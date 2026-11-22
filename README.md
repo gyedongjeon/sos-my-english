@@ -181,6 +181,8 @@ often not heard saying can be looked into later.
 language under the English. The first time it is turned on for a video, all of the video's
 sentences are sent to the LLM, a few dozen at a time, and translated; the translations are kept
 in the local database, so the video opens with them afterwards without asking the LLM again.
+Sentences a request failed on, or that the LLM left out, are asked for once more right away;
+any still without a translation are counted on the page, with "Try again" to ask for just those.
 Each feedback language is translated on its own. With English as the feedback language there is
 nothing to translate into. A translation follows the sentences as they are cut, so a sentence
 cut short by subtitles is translated as it stands.
