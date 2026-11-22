@@ -111,7 +111,12 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+      # The cache is pruned and saved when the job ends. On Windows a file that a process still
+      # holds open cannot be removed, so start-server-check.sh must stop the server it starts.
       - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
       - name: Run the backend tests
         working-directory: backend
         run: |
