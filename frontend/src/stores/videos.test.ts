@@ -249,6 +249,19 @@ describe('translations', () => {
     expect(store.translating).toBe(false)
   })
 
+  it('counts the sentences left without a translation, and keeps the others shown while asking again', async () => {
+    fakeBackend({ 'POST /videos/2/translations': [200, { ...TRANSLATED, lines: TRANSLATED.lines.slice(0, 1), missing: 1 }] })
+    const store = useVideosStore()
+    await store.translate(2)
+    expect(store.untranslated).toBe(1)
+    fakeBackend({ 'POST /videos/2/translations': [200, { ...TRANSLATED, missing: 0 }] })
+    const again = store.translate(2)
+    expect(store.translations).toEqual({ 11: '하나.' })
+    await again
+    expect(store.translations).toEqual({ 11: '하나.', 12: '둘.' })
+    expect(store.untranslated).toBe(0)
+  })
+
   it('ignores a translation that comes after another video asked for its own', async () => {
     fakeBackend({
       'POST /videos/2/translations': [200, TRANSLATED],

@@ -16,6 +16,8 @@ router = APIRouter(prefix="/api")
 # How many sentences one request translates; the parts of a long video are asked for at once.
 CHUNK = 40
 PARALLEL = 4
+# Sentences a request failed on or the model left out are asked for again, this many times in all.
+ROUNDS = 2
 
 
 class Translated(BaseModel):
@@ -35,6 +37,8 @@ class LineTranslation(BaseModel):
 class VideoTranslation(BaseModel):
     language: str
     lines: list[LineTranslation]
+    # Sentences left without a translation after every round; asking again tries them again.
+    missing: int = 0
 
 
 PROMPT = """\
@@ -91,8 +95,6 @@ def translate(video: int) -> VideoTranslation:
             (video, language),
         ).fetchall()
     kept = {row["line"]: row["text"] for row in rows}
-    missing = [line for line in found.lines if line.id not in kept]
-    parts = [missing[i : i + CHUNK] for i in range(0, len(missing), CHUNK)]
     error: LLMError | None = None
 
     def run(part: list[videos.SavedLine]) -> dict[int, str]:
@@ -106,12 +108,18 @@ def translate(video: int) -> VideoTranslation:
         _save(language, written)
         return written
 
-    with ThreadPoolExecutor(max_workers=PARALLEL) as pool:
-        for written in pool.map(run, parts):
-            kept.update(written)
+    for _ in range(ROUNDS):
+        missing = [line for line in found.lines if line.id not in kept]
+        if not missing:
+            break
+        parts = [missing[i : i + CHUNK] for i in range(0, len(missing), CHUNK)]
+        with ThreadPoolExecutor(max_workers=PARALLEL) as pool:
+            for written in pool.map(run, parts):
+                kept.update(written)
     if error and not any(line.id in kept for line in found.lines):
         raise HTTPException(status_code=502, detail=f"Could not translate the sentences: {error}")
     return VideoTranslation(
         language=language,
         lines=[LineTranslation(line=line.id, text=kept[line.id]) for line in found.lines if line.id in kept],
+        missing=sum(1 for line in found.lines if line.id not in kept),
     )

@@ -204,6 +204,8 @@ export interface Video extends Omit<VideoSummary, 'sentences'> {
 export interface VideoTranslation {
   language: string
   lines: { line: number; text: string }[]
+  /** Sentences left without a translation; asking again tries them again. */
+  missing: number
 }
 
 export type Phase = 'idle' | 'transcribing' | 'thinking' | 'reviewing'
