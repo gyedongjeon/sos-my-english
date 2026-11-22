@@ -12,8 +12,9 @@
     "test": "vitest run",
     "dev": "npm run frontend && npm run compile && node scripts/name-dev-app.mjs && electron .",
     "uv": "node scripts/fetch-uv.mjs",
-    "package": "npm run uv && npm run frontend && npm run compile && electron-builder --dir",
-    "dist": "npm run uv && npm run frontend && npm run compile && electron-builder"
+    "package": "npm run uv && npm run python && npm run frontend && npm run compile && electron-builder --dir",
+    "dist": "npm run uv && npm run python && npm run frontend && npm run compile && electron-builder",
+    "python": "node scripts/fetch-python.mjs"
   },
   "build": {
     "appId": "local.sos-my-english",
@@ -43,7 +44,8 @@
         "from": "vendor/uv",
         "to": "uv",
         "filter": [
-          "uv"
+          "uv",
+          "uv.exe"
         ]
       }
     ],
@@ -59,6 +61,29 @@
       "extendInfo": {
         "NSMicrophoneUsageDescription": "The microphone records what you say so it can be transcribed and corrected."
       }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "extraResources": [
+        {
+          "from": "vendor/python",
+          "to": "python"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "SOS-My-English-Setup-${version}.${ext}"
     }
   },
   "devDependencies": {

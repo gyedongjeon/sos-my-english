@@ -106,6 +106,6 @@ def test_a_database_from_before_practice_gains_the_columns(client):
         conn.execute("ALTER TABLE messages DROP COLUMN practiced")
         conn.execute("ALTER TABLE messages DROP COLUMN practiced_at")
     init_db()
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_connection() as conn:
         columns = [column[1] for column in conn.execute("PRAGMA table_info(messages)")]
     assert "practiced" in columns and "practiced_at" in columns

@@ -109,5 +109,5 @@ def test_a_database_from_before_reviews_gains_the_column(client):
     with get_connection() as conn:
         conn.execute("ALTER TABLE conversations DROP COLUMN review")
     init_db()
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_connection() as conn:
         assert "review" in [column[1] for column in conn.execute("PRAGMA table_info(conversations)")]

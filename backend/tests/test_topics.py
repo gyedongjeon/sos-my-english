@@ -123,6 +123,6 @@ def test_a_database_from_before_own_topics_gains_the_column(client):
     with get_connection() as conn:
         conn.execute("ALTER TABLE topics DROP COLUMN custom")
     init_db()
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_connection() as conn:
         assert "custom" in [column[1] for column in conn.execute("PRAGMA table_info(topics)")]
     assert all(topic["custom"] is False for topic in client.get("/api/topics").json())

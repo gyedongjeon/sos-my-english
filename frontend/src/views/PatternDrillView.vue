@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import MorseSignal from '../components/MorseSignal.vue'
-import { useRecorder } from '../composables/useRecorder'
+import { micProblem, useRecorder } from '../composables/useRecorder'
 import { useSpeech } from '../composables/useSpeech'
 import { useDrillStore } from '../stores/drill'
 import { usePatternsStore } from '../stores/patterns'
@@ -32,8 +32,8 @@ async function startSpeaking() {
   speech.stop()
   try {
     await recorder.start()
-  } catch {
-    error.value = 'The microphone is not available. Allow microphone access and try again.'
+  } catch (e) {
+    error.value = micProblem(e)
   }
 }
 
