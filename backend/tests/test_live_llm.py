@@ -165,3 +165,24 @@ def test_the_sentences_of_a_video_are_translated_into_the_learners_language(clie
     lines = response.json()["lines"]
     assert [line["line"] for line in lines] == [line["id"] for line in video["lines"]]
     assert all(re.search("[가-힣]", line["text"]) for line in lines), lines
+
+
+def test_automatic_subtitles_without_punctuation_are_cut_into_sentences(client, monkeypatch):
+    from app import videos
+    from app.videos import Snippet
+
+    # As YouTube's automatic subtitles sometimes come: no punctuation, a recognition error ("there").
+    said = [
+        "richard feynman was a leading theoretical physicist who received a",
+        "nobel prize for his work in quantum electrodynamics he was also",
+        "a famous teacher and there lectures are still",
+        "watched today let's take a look",
+    ]
+    monkeypatch.setattr(videos, "_transcript", lambda video_id: ([Snippet(i * 3.0, 3.0, s) for i, s in enumerate(said)], "en", True))
+    monkeypatch.setattr(videos, "_about", lambda video_id: ("Feynman", "A channel"))
+    response = client.post("/api/videos", json={"url": "https://youtu.be/aRlakaPVrEw"})
+    assert response.status_code == 201, response.text
+    lines = [line["text"] for line in response.json()["lines"]]
+    # Cut at sentence ends, not at the subtitle lines, with every word said kept as it was.
+    assert lines != said and any(re.search(r"[.!?]$", line) for line in lines), lines
+    assert [w.strip(".,!?:;").lower() for line in lines for w in line.split()] == " ".join(said).lower().split()
