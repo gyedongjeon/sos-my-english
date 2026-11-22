@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { api } from '../api'
-import type { Video, VideoHit, VideoSummary } from '../types'
+import type { Video, VideoHit, VideoSuggestion, VideoSummary } from '../types'
 
 export const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 /** What the videos without a level are listed under, and the choice that shows every video. */
@@ -21,6 +21,11 @@ export const useVideosStore = defineStore('videos', {
     searching: false,
     // The level chosen on the videos page; kept while the app is open.
     level: ALL,
+    // Videos like a saved one, and the saved one they were asked for.
+    suggestions: [] as VideoSuggestion[],
+    suggestedFor: null as number | null,
+    suggesting: false,
+    suggestError: '',
   }),
   getters: {
     /** The levels that have videos, easiest first, then the videos without one. */
@@ -60,6 +65,7 @@ export const useVideosStore = defineStore('videos', {
           const { lines, ...about } = video
           this.videos.unshift({ ...about, sentences: lines.length })
         }
+        this.suggestions = this.suggestions.filter((s) => s.video_id !== video.video_id)
         return video
       } catch (e) {
         this.addError = (e as Error).message
@@ -95,6 +101,23 @@ export const useVideosStore = defineStore('videos', {
       } catch (e) {
         this.error = (e as Error).message
         return null
+      }
+    },
+
+    /** Finds videos like a saved one, at a similar level. */
+    async suggest(id: number) {
+      this.suggestedFor = id
+      this.suggestions = []
+      this.suggestError = ''
+      this.addError = ''
+      this.suggesting = true
+      try {
+        const found = await api<VideoSuggestion[]>(`/videos/${id}/suggestions`, { method: 'POST' })
+        if (this.suggestedFor === id) this.suggestions = found
+      } catch (e) {
+        if (this.suggestedFor === id) this.suggestError = (e as Error).message
+      } finally {
+        if (this.suggestedFor === id) this.suggesting = false
       }
     },
 

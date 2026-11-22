@@ -180,6 +180,19 @@ export interface VideoSummary {
 }
 
 /** A saved video with its sentences. */
+/** A YouTube video like a saved one, found to study with next; not saved until it is added. */
+export interface VideoSuggestion {
+  video_id: string
+  title: string
+  channel: string
+  /** Its length in seconds, when YouTube gives it. */
+  duration: number | null
+  /** The CEFR level its subtitles were estimated at. */
+  level: string
+  /** Whether its subtitles were made automatically by YouTube. */
+  generated: boolean
+}
+
 export interface Video extends Omit<VideoSummary, 'sentences'> {
   lines: SavedVideoLine[]
 }

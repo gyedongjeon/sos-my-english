@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import MorseSignal from '../components/MorseSignal.vue'
 import { micProblem, useRecorder } from '../composables/useRecorder'
@@ -38,6 +38,19 @@ async function setLevel(level: string) {
   if (!video.value) return
   const changed = await videos.setLevel(video.value.id, level || null)
   if (changed) video.value.level = changed.level
+}
+
+// Videos like this one, at a similar level, to study with next.
+const router = useRouter()
+const suggested = computed(() => video.value !== null && videos.suggestedFor === video.value.id)
+// The suggested video being added.
+const adding = ref('')
+
+async function addSuggested(videoId: string) {
+  adding.value = videoId
+  const added = await videos.add(`https://youtu.be/${videoId}`)
+  adding.value = ''
+  if (added) await router.push({ name: 'video', params: { id: added.id } })
 }
 
 async function estimateLevel() {
@@ -220,7 +233,37 @@ onBeforeUnmount(() => recorder.release())
           <button class="btn btn-ghost btn-sm" :disabled="estimating" @click="estimateLevel">Estimate it</button>
           <span v-if="estimating" class="flex items-center gap-2 text-base-content/60"><MorseSignal animated /> Estimating…</span>
           <span v-if="videos.error" role="alert" class="text-error">{{ videos.error }}</span>
+          <button class="btn btn-ghost btn-sm" :disabled="videos.suggesting" @click="videos.suggest(video.id)">
+            Find similar videos
+          </button>
         </div>
+
+        <section v-if="suggested" class="mt-2 rounded-box bg-base-100 p-3 text-sm" aria-label="Similar videos">
+          <p v-if="videos.suggesting" class="flex items-center gap-2 text-base-content/60">
+            <MorseSignal animated /> Looking on YouTube for videos like this one…
+          </p>
+          <div v-else-if="videos.suggestError" role="alert" class="alert alert-error alert-soft">{{ videos.suggestError }}</div>
+          <p v-else-if="!videos.suggestions.length" class="text-base-content/60">
+            No videos with English subtitles at a similar level were found. Try again for other searches.
+          </p>
+          <ul v-else class="grid gap-2">
+            <li v-for="s in videos.suggestions" :key="s.video_id" class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div class="min-w-0 flex-1">
+                <p class="font-medium">{{ s.title }}</p>
+                <p class="text-base-content/60">
+                  <template v-if="s.channel">{{ s.channel }} · </template>
+                  <template v-if="s.duration !== null">{{ clock(s.duration) }} · </template>
+                  <span class="badge badge-soft badge-primary badge-sm">{{ s.level }}</span>
+                  <template v-if="s.generated"> · automatic subtitles</template>
+                </p>
+              </div>
+              <button class="btn btn-primary btn-sm" :disabled="videos.adding" @click="addSuggested(s.video_id)">
+                {{ adding === s.video_id ? 'Adding…' : 'Add' }}
+              </button>
+            </li>
+          </ul>
+          <div v-if="videos.addError" role="alert" class="alert alert-error alert-soft mt-2">{{ videos.addError }}</div>
+        </section>
       </header>
 
       <div class="sticky top-0 z-10 -mx-4 mt-3 bg-base-200 px-4 pb-3 sm:-mx-6 sm:px-6">

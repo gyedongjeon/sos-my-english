@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Video, VideoSummary } from '../types'
+import type { Video, VideoSuggestion, VideoSummary } from '../types'
 import { useVideosStore } from './videos'
 
 const SAVED: VideoSummary = {
@@ -27,6 +27,14 @@ const ADDED: Video = {
     { id: 11, start: 1, end: 2, text: 'One.', shadowed: 0, best: null },
     { id: 12, start: 2, end: 3, text: 'Two.', shadowed: 0, best: null },
   ],
+}
+const SUGGESTED: VideoSuggestion = {
+  video_id: 'arj7oStGLkU',
+  title: 'A talk',
+  channel: 'TED',
+  duration: 600,
+  level: 'B2',
+  generated: false,
 }
 
 // Answers each "METHOD path" with the prepared [status, body], and records the requests and their JSON.
@@ -176,5 +184,43 @@ describe('videos', () => {
     expect(await store.estimateLevel(1)).toBeNull()
     expect(store.error).toContain('No model is configured.')
     expect(store.videos[0].level).toBe('B2')
+  })
+})
+
+describe('suggested videos', () => {
+  it('suggests videos like a saved one', async () => {
+    const backend = fakeBackend({ 'POST /videos/1/suggestions': [200, [SUGGESTED]] })
+    const store = useVideosStore()
+    await store.suggest(1)
+    expect(backend.asked).toEqual(['POST /videos/1/suggestions'])
+    expect(store.suggestions).toEqual([SUGGESTED])
+    expect(store.suggestedFor).toBe(1)
+    expect(store.suggesting).toBe(false)
+  })
+
+  it('says why no videos could be suggested', async () => {
+    fakeBackend({ 'POST /videos/1/suggestions': [502, { detail: 'YouTube could not be searched: offline' }] })
+    const store = useVideosStore()
+    await store.suggest(1)
+    expect(store.suggestions).toEqual([])
+    expect(store.suggestError).toContain('YouTube could not be searched')
+  })
+
+  it('ignores suggestions that come after another video asked for its own', async () => {
+    fakeBackend({ 'POST /videos/1/suggestions': [200, [SUGGESTED]], 'POST /videos/2/suggestions': [200, []] })
+    const store = useVideosStore()
+    const first = store.suggest(1)
+    await store.suggest(2)
+    await first
+    expect(store.suggestedFor).toBe(2)
+    expect(store.suggestions).toEqual([])
+  })
+
+  it('no longer suggests a video once it is added', async () => {
+    fakeBackend({ 'POST /videos/1/suggestions': [200, [SUGGESTED]], 'POST /videos': [201, ADDED] })
+    const store = useVideosStore()
+    await store.suggest(1)
+    await store.add('https://youtu.be/arj7oStGLkU')
+    expect(store.suggestions).toEqual([])
   })
 })
