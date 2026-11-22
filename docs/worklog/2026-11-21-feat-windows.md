@@ -60,3 +60,8 @@ Make a Windows version of the app as well.
 - The packaged app keeps the backend's output in `backend.log` in its data folder.
 - Checked on macOS with a stand-in for uv: the bar and the words followed its lines.
 - In the Windows trial the Python download was retried four times from inside the app and never finished, while the same uv run from a command prompt fetched it in 18 seconds; after that the app went on to the packages. Whether the app or the connection was at fault is not known yet.
+
+### Follow-up: the microphone error says what went wrong
+- In the same trial the installed app opened, and "Start speaking" answered "The microphone is not available" without a reason.
+- The message now depends on the failure: no microphone found, access turned off in the system's privacy settings, the microphone held by another app, or the failure's name for anything else. All four screens that record use it.
+- The cause on the trial machine is not known yet; the new message is what will tell.

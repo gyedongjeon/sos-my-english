@@ -5,7 +5,7 @@ import CorrectionCard from '../components/CorrectionCard.vue'
 import DeliveryNote from '../components/DeliveryNote.vue'
 import MorseSignal from '../components/MorseSignal.vue'
 import ReviewCard from '../components/ReviewCard.vue'
-import { useRecorder } from '../composables/useRecorder'
+import { micProblem, useRecorder } from '../composables/useRecorder'
 import { useSpeech } from '../composables/useSpeech'
 import { percent, useModelsStore } from '../stores/models'
 import { usePracticeStore } from '../stores/practice'
@@ -57,8 +57,8 @@ async function startSpeaking() {
   speech.stop()
   try {
     await recorder.start()
-  } catch {
-    error.value = 'The microphone is not available. Allow microphone access and try again.'
+  } catch (e) {
+    error.value = micProblem(e)
   }
 }
 

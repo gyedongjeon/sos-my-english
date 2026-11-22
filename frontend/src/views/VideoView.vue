@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api'
 import MorseSignal from '../components/MorseSignal.vue'
-import { useRecorder } from '../composables/useRecorder'
+import { micProblem, useRecorder } from '../composables/useRecorder'
 import { useYouTubePlayer } from '../composables/useYouTubePlayer'
 import { usePatternsStore } from '../stores/patterns'
 import { useShadowStore } from '../stores/shadow'
@@ -131,8 +131,8 @@ async function startShadowing() {
   shadow.clear()
   try {
     await recorder.start()
-  } catch {
-    micError.value = 'The microphone is not available. Allow microphone access and try again.'
+  } catch (e) {
+    micError.value = micProblem(e)
   }
 }
 
