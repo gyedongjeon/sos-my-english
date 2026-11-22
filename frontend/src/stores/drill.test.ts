@@ -89,6 +89,24 @@ describe('own patterns', () => {
     expect(store.patterns).toHaveLength(2)
   })
 
+  it('loads the whole list when only a just-made pattern is known', async () => {
+    const backend = fakeBackend({ '/patterns': [201, OWN] })
+    const store = usePatternsStore()
+    await store.make(42, 'the closest')
+    backend.replies['/patterns'] = [200, [OTHER, PATTERN, OWN]]
+    await store.ensureLoaded()
+    expect(store.loading).toBe(false)
+    expect(store.patterns).toEqual([OTHER, PATTERN, OWN])
+  })
+
+  it('does not load the list again once it is loaded', async () => {
+    const backend = fakeBackend({})
+    const store = usePatternsStore()
+    await store.load()
+    await store.ensureLoaded()
+    expect(backend.calls.filter((c) => c === '/patterns')).toHaveLength(1)
+  })
+
   it('says why a pattern could not be made', async () => {
     fakeBackend({ '/patterns': [502, { detail: 'No model is configured.' }] })
     const store = usePatternsStore()

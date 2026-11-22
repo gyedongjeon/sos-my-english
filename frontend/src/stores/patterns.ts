@@ -7,6 +7,8 @@ export const usePatternsStore = defineStore('patterns', {
   state: () => ({
     patterns: [] as PatternStatus[],
     loading: true,
+    // Whether the whole list came from the backend; a pattern just made from a video may be all that is known.
+    loaded: false,
     error: '',
     // The level chosen on the patterns page; kept while the app is open.
     level: '',
@@ -31,11 +33,17 @@ export const usePatternsStore = defineStore('patterns', {
       this.error = ''
       try {
         this.patterns = await api<PatternStatus[]>('/patterns')
+        this.loaded = true
       } catch (e) {
         this.error = (e as Error).message
       } finally {
         this.loading = false
       }
+    },
+
+    /** Loads the list unless it was loaded already. */
+    async ensureLoaded() {
+      if (!this.loaded) await this.load()
     },
 
     /** Has a pattern made from the marked part of a video's sentence; null with `makeError` set when it fails. */

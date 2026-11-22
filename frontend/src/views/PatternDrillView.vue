@@ -22,7 +22,7 @@ async function begin() {
   speech.stop()
   recorder.release()
   error.value = ''
-  if (!patterns.patterns.length) await patterns.load()
+  await patterns.ensureLoaded()
   if (pattern.value) await drill.start(pattern.value)
 }
 
