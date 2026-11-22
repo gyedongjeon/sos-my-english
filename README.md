@@ -22,13 +22,13 @@ Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeo
 - **A summary at the end**: wrap a conversation up to see how it went: what you did well, what to work on next, and a few expressions worth trying next time.
 - **40 topics in 9 categories**: everyday chat, work, school, shopping, food, travel, services, home, and giving your opinion.
 - **Sentence patterns by level**: 100 patterns from A1 to C2. You see a sentence in your own language and say it in English, five sentences a round, and each one is checked.
-- **Study with YouTube videos**: paste a link and listen to the video one sentence at a time, with repeat, slower speeds, and the text hidden or shown. Say a sentence after the speaker to see which words came through, and search all your videos for a phrase to hear how it is used. Mark an expression in a sentence to turn it into a pattern of your own and practise it. Videos are tagged with a level from A1 to C2 and can be listed level by level.
+- **Study with YouTube videos**: paste a link and listen to the video one sentence at a time, with repeat, slower speeds, and the text hidden or shown. Say a sentence after the speaker to see which words came through, and search all your videos for a phrase to hear how it is used. Mark an expression in a sentence to turn it into a pattern of your own and practise it. Videos are tagged with a level from A1 to C2 and can be listed level by level, and a video can suggest others like it at a similar level.
 - **Your own topics**: add the situations you need (a job interview, renting a car, a call with a client) next to the built-in ones.
 - **Practise your corrections**: every fix is collected on the Corrections page, where you say the better sentence aloud until it comes out right.
 - **History**: every conversation is saved as you have it, with its corrections, so you can read it and hear it again.
 - **Explanations in your language**: corrections are explained in Korean, Japanese, Chinese, Spanish, and more; the conversation stays in English.
 - **Topics from what you read**: paste a link to an article or a speech, or its text, and get a topic to discuss it, with a short summary to talk from.
-- **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation, and a text or page you make a topic from, goes to the LLM provider you choose, with your own API key. Videos are streamed from YouTube; a part of a video's subtitles is sent to estimate its level, and a sentence you make a pattern from.
+- **Private by default**: speech-to-text and your partner's voice run locally, and your data stays on your computer. Only the text of the conversation, and a text or page you make a topic from, goes to the LLM provider you choose, with your own API key. Videos are streamed from YouTube; a part of a video's subtitles is sent to estimate its level and to find videos like it, and a sentence you make a pattern from.
 
 The app runs locally for a single user; there is no account, server, or deployment.
 
@@ -182,8 +182,16 @@ first and the last word of the expression you want. The LLM turns it into a form
 pattern, links back to its place in the video, and stays when the video is deleted. Only the
 sentence and the marked part are sent to the LLM.
 
-- The subtitles are read the way YouTube's own page reads them, not through an official
-  interface, so this can stop working when YouTube changes something. A video whose owner does
+**Similar videos.** "Find similar videos" on a video's page has the LLM think of two or three
+YouTube searches from the video's title and a part of its subtitles. YouTube is searched with
+[yt-dlp](https://github.com/yt-dlp/yt-dlp), and the first few videos found (Shorts and videos
+over an hour left out) are checked: their English subtitles are read and their level estimated,
+as when a video is added. Only those one level apart at most from the video's own are
+suggested, nearest first; "Add" saves one and opens it. Nothing is saved until you add it. A
+search asks the LLM up to seven times and takes about ten seconds.
+
+- The subtitles are read, and YouTube is searched, the way YouTube's own page does it, not
+  through an official interface, so this can stop working when YouTube changes something. A video whose owner does
   not allow embedding cannot be played.
 - Subtitles stay on this computer and are not sent anywhere; deleting a video deletes them.
 - Automatic subtitles often have no punctuation. They are then kept line by line.

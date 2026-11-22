@@ -133,3 +133,19 @@ def test_a_marked_part_of_a_sentence_becomes_a_short_pattern(client, monkeypatch
     # A formula, not the sentence again.
     assert "college graduation" not in made["pattern"].lower()
     assert made["use"].strip() and made["example"] == sentence
+
+
+def test_searches_for_videos_like_a_saved_one_are_a_few_short_phrases(client, monkeypatch):
+    from app import similar_videos, videos
+    from app.videos import Snippet
+
+    said = ["Stay hungry. Stay foolish.", "You can't connect the dots looking forward.", "Death is very likely the single best invention of life."]
+    monkeypatch.setattr(videos, "_transcript", lambda video_id: ([Snippet(i * 4.0, 4.0, s) for i, s in enumerate(said)], "en", False))
+    monkeypatch.setattr(videos, "_about", lambda video_id: ("Commencement address", "Stanford"))
+    video = client.post("/api/videos", json={"url": "https://youtu.be/UF8uR6Z6KLc"}).json()
+    searched = []
+    monkeypatch.setattr(similar_videos, "_search", lambda query, count: searched.append(query) or [])
+    response = client.post(f"/api/videos/{video['id']}/suggestions")
+    assert response.status_code == 200, response.text
+    assert 1 <= len(searched) <= 3
+    assert all(1 <= len(query.split()) <= 10 for query in searched)

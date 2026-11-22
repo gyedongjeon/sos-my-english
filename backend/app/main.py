@@ -14,6 +14,7 @@ from .models import router as models_router
 from .paths import FRONTEND_DIST
 from .patterns import router as patterns_router
 from .settings import router as settings_router
+from .similar_videos import router as similar_videos_router
 from .speech import synthesize
 from .topics import router as topics_router
 from .transcribe import transcribe
@@ -34,6 +35,7 @@ app.include_router(patterns_router)
 app.include_router(settings_router)
 app.include_router(topics_router)
 app.include_router(videos_router)
+app.include_router(similar_videos_router)
 
 
 class TranscriptResponse(BaseModel):
