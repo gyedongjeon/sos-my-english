@@ -7,7 +7,7 @@ import { mkdir, rm } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { backendLaunch, startupProgress, stopCommand } from './backend'
+import { backendLaunch, microphoneSettings, startupProgress, stopCommand } from './backend'
 import {
   bundlePath,
   download,
@@ -221,6 +221,25 @@ async function installUpdate(update: Update, bundle: string) {
   }
 }
 
+let offeringSettings = false
+
+/**
+ * When the system refuses the microphone, say so and offer its settings. Windows never asks
+ * for a desktop app, and macOS asks only once, so without this the page could only report a failure.
+ */
+async function offerMicrophoneSettings() {
+  const settings = microphoneSettings(process.platform)
+  if (!settings || offeringSettings || systemPreferences.getMediaAccessStatus('microphone') !== 'denied') return
+  offeringSettings = true
+  const choice = await ask(
+    'Microphone access is turned off',
+    'SOS My English needs the microphone to hear you. Allow it in the privacy settings, then try again.',
+    ['Open Settings', 'Later'],
+  )
+  offeringSettings = false
+  if (choice === 0) void shell.openExternal(settings)
+}
+
 function setMenu() {
   const checkForUpdate = { label: 'Check for Updates…', click: () => void checkForUpdates(true) }
   if (process.platform !== 'darwin') {
@@ -281,9 +300,10 @@ async function main() {
   if (!app.isPackaged) app.dock?.setIcon(join(__dirname, '..', 'assets', 'icon.png'))
 
   // The page records what the learner says with the microphone, and a video can be made full screen.
-  session.defaultSession.setPermissionRequestHandler((_contents, permission, allow) =>
-    allow(permission === 'media' || permission === 'fullscreen'),
-  )
+  session.defaultSession.setPermissionRequestHandler((_contents, permission, allow) => {
+    if (permission === 'media') void offerMicrophoneSettings()
+    allow(permission === 'media' || permission === 'fullscreen')
+  })
   if (process.platform === 'darwin') {
     // macOS asks once; startup does not wait for the answer.
     void systemPreferences.askForMediaAccess('microphone')

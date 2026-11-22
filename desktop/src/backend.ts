@@ -106,3 +106,10 @@ export function startupProgress(log: string): Progress {
     fraction: PYTHON_SHARE + PACKAGES_SHARE * (done / total),
   }
 }
+
+/** The page of the system settings where microphone access is allowed, where there is one to open. */
+export function microphoneSettings(platform: NodeJS.Platform): string | null {
+  if (platform === 'win32') return 'ms-settings:privacy-microphone'
+  if (platform === 'darwin') return 'x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone'
+  return null
+}

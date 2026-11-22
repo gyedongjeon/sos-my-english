@@ -65,3 +65,4 @@ Make a Windows version of the app as well.
 - In the same trial the installed app opened, and "Start speaking" answered "The microphone is not available" without a reason.
 - The message now depends on the failure: no microphone found, access turned off in the system's privacy settings, the microphone held by another app, or the failure's name for anything else. All four screens that record use it.
 - The cause on the trial machine is not known yet; the new message is what will tell.
+- When the system itself refuses the microphone, the app now shows a dialog that offers to open the microphone page of the system settings (Windows never asks for a desktop app; macOS asks once). Not seen running yet: it needs a machine where access is turned off.
