@@ -61,9 +61,9 @@ Use version 0.1.1 or later: 0.1.0 does not start.
    on macOS. Allow microphone access for desktop apps in Windows' privacy settings if the app
    cannot hear you.
 
-The Windows installer is built and checked by automated jobs only (the backend's tests, the
-server started as the app starts it, and the installer built); it has not been tried by hand
-on a Windows machine yet. Please open an issue if something does not work.
+The Windows app has been tried far less than the macOS one: once, in a Windows 11 virtual
+machine (installing, the first launch, and speaking), beside the automated checks. Please open
+an issue if something does not work.
 
 On Intel Macs and Linux there is no installer yet; [run it from source](#run-from-source).
 
