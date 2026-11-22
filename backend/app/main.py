@@ -1,5 +1,6 @@
 """FastAPI entry point."""
 
+import threading
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 
@@ -8,6 +9,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from .corrections import router as corrections_router
+from . import llm
 from .db import init_db
 from .history import router as history_router
 from .models import router as models_router
@@ -24,6 +26,8 @@ from .videos import router as videos_router
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
+    # LiteLLM takes seconds to load; the app opens without waiting for it.
+    threading.Thread(target=llm.load, daemon=True).start()
     yield
 
 
