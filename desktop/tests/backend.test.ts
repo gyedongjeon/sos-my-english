@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { backendLaunch, stopCommand } from '../src/backend'
+import { backendLaunch, latestStep, stopCommand } from '../src/backend'
 
 const options = {
   project: '/App/Resources/backend',
@@ -62,5 +62,22 @@ describe('stopCommand', () => {
   it('needs no command elsewhere, where the process group is signalled', () => {
     expect(stopCommand('darwin', 4321)).toBeNull()
     expect(stopCommand('linux', 4321)).toBeNull()
+  })
+})
+
+describe('latestStep', () => {
+  it('is the last thing the backend wrote, so the waiting screen can show it', () => {
+    expect(latestStep('Downloading cpython-3.12\n Downloaded cpython-3.12\nDownloading onnxruntime (12.3MiB)\n')).toBe(
+      'Downloading onnxruntime (12.3MiB)',
+    )
+  })
+
+  it('reads Windows line ends and leaves out colour codes and blank lines', () => {
+    expect(latestStep('one\r\n\u001b[2mInstalled\u001b[0m 84 packages\r\n\r\n  \r\n')).toBe('Installed 84 packages')
+  })
+
+  it('is cut short when a line is very long, and empty before anything was written', () => {
+    expect(latestStep('x'.repeat(500))).toHaveLength(120)
+    expect(latestStep('')).toBe('')
   })
 })

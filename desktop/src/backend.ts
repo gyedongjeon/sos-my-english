@@ -44,3 +44,16 @@ export function backendLaunch({ project, frontend, userData, port, env }: Backen
 export function stopCommand(platform: NodeJS.Platform, pid: number): { command: string; args: string[] } | null {
   return platform === 'win32' ? { command: 'taskkill', args: ['/pid', String(pid), '/T', '/F'] } : null
 }
+
+// Colour and cursor codes that a tool writes for a terminal.
+const TERMINAL_CODES = /\u001b\[[0-9;?]*[A-Za-z]/g
+
+/** The last line the backend wrote while starting, short enough to show under the waiting message. */
+export function latestStep(log: string): string {
+  const lines = log
+    .replace(TERMINAL_CODES, '')
+    .split(/[\r\n]+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+  return (lines.at(-1) ?? '').slice(0, 120)
+}

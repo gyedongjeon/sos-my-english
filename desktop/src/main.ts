@@ -2,12 +2,12 @@
 // it in a window. The backend is stopped when the app quits.
 import { app, BrowserWindow, dialog, Menu, session, shell, systemPreferences } from 'electron'
 import { type ChildProcess, spawn } from 'node:child_process'
-import { accessSync, constants, existsSync } from 'node:fs'
+import { accessSync, constants, createWriteStream, existsSync, mkdirSync } from 'node:fs'
 import { mkdir, rm } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { backendLaunch, stopCommand } from './backend'
+import { backendLaunch, latestStep, stopCommand } from './backend'
 import {
   bundlePath,
   download,
@@ -28,6 +28,8 @@ let backend: ChildProcess | null = null
 let backendLog = ''
 let window: BrowserWindow | null = null
 let quitting = false
+// True while the waiting screen is up; it shows what the backend is doing.
+let starting = false
 
 function paths() {
   if (!app.isPackaged) {
@@ -58,8 +60,17 @@ function startBackend(uv: string, port: number) {
 
   // Its own process group, so quitting can stop uv together with the Python server it runs.
   const child = spawn(uv, args, { cwd: project, env, detached: process.platform !== 'win32', windowsHide: true })
+  // The packaged app keeps what the backend wrote, so a start that fails or hangs can be looked into.
+  let file: ReturnType<typeof createWriteStream> | null = null
+  if (userData) {
+    mkdirSync(userData, { recursive: true })
+    file = createWriteStream(join(userData, 'backend.log'))
+    file.on('error', () => (file = null))
+  }
   const keep = (chunk: Buffer) => {
     backendLog = (backendLog + chunk.toString()).slice(-4000)
+    file?.write(chunk)
+    if (starting) showStep(latestStep(backendLog))
   }
   child.stdout?.on('data', keep)
   child.stderr?.on('data', keep)
@@ -70,6 +81,13 @@ function startBackend(uv: string, port: number) {
     app.quit()
   })
   backend = child
+}
+
+/** Show under the waiting message what the first launch is doing, such as the package being downloaded. */
+function showStep(step: string) {
+  const script = `document.getElementById('step').textContent = ${JSON.stringify(step)}`
+  // The page may be gone by now; then there is nothing to show it on.
+  window?.webContents.executeJavaScript(script).catch(() => {})
 }
 
 function stopBackend() {
@@ -103,7 +121,8 @@ const SPLASH = `data:text/html;charset=utf-8,${encodeURIComponent(`<!doctype htm
 <body style="margin:0;height:100vh;display:grid;place-items:center;font:16px system-ui;color:#5b6477;background:#fbf8f3">
 <div style="text-align:center"><p style="font-size:14px;letter-spacing:4px;color:#f4541d;margin:0">&middot;&middot;&middot; &ndash;&ndash;&ndash; &middot;&middot;&middot;</p>
 <p style="font-size:28px;color:#14213d;margin:8px 0"><b style="color:#f4541d">SOS</b> My English</p>
-<p>Help is on the way… the first launch sets things up and can take a few minutes.</p></div></body>`)}`
+<p>Help is on the way… the first launch sets things up and can take a few minutes.</p>
+<p id="step" style="font:12px ui-monospace,Consolas,monospace;min-height:16px;margin:0"></p></div></body>`)}`
 
 // --- Updates --------------------------------------------------------------------------
 // The app is not signed with an Apple developer certificate, so the standard updater cannot be
@@ -272,10 +291,13 @@ async function main() {
 
   const port = await freePort()
   const url = `http://127.0.0.1:${port}`
+  starting = true
   startBackend(uv, port)
   try {
     await waitForBackend(url)
+    starting = false
   } catch (e) {
+    starting = false
     if (quitting) return
     quitting = true
     stopBackend()

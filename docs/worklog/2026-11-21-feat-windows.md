@@ -53,3 +53,8 @@ Make a Windows version of the app as well.
 
 ### Follow-up: installer kept as a CI artifact
 - The Windows CI job now uploads the installer it builds (`windows-installer`, kept 7 days), so it can be tried on a real machine before a release.
+
+### Follow-up: the first launch shows what it is doing
+- Reported on 2026-11-22 from a first try of the installer in a Windows virtual machine: the waiting screen stayed up with no sign of whether the setup was slow or stuck.
+- The waiting screen now shows the last line the backend wrote (for example the package being downloaded), and the packaged app keeps that output in `backend.log` in its data folder.
+- Checked on macOS with a stand-in for uv that prints two lines: the screen showed the second one. The cause of the long wait in the virtual machine is not known yet.
