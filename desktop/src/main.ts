@@ -36,13 +36,20 @@ let shown = 0
 function paths() {
   if (!app.isPackaged) {
     const root = join(__dirname, '..', '..')
-    return { project: join(root, 'backend'), frontend: join(root, 'frontend', 'dist'), userData: null }
+    return { project: join(root, 'backend'), frontend: join(root, 'frontend', 'dist'), userData: null, python: null }
   }
   return {
     project: join(process.resourcesPath, 'backend'),
     frontend: join(process.resourcesPath, 'frontend'),
     userData: app.getPath('userData'),
+    python: shippedPython(),
   }
+}
+
+/** The Python inside the packaged app; only the Windows installer ships one. */
+function shippedPython(): string | null {
+  const python = join(process.resourcesPath, 'python', 'python.exe')
+  return existsSync(python) ? python : null
 }
 
 function freePort(): Promise<number> {
@@ -57,8 +64,8 @@ function freePort(): Promise<number> {
 }
 
 function startBackend(uv: string, port: number) {
-  const { project, frontend, userData } = paths()
-  const { args, env } = backendLaunch({ project, frontend, userData, port, env: process.env })
+  const { project, frontend, userData, python } = paths()
+  const { args, env } = backendLaunch({ project, frontend, userData, port, env: process.env, python })
 
   // Its own process group, so quitting can stop uv together with the Python server it runs.
   const child = spawn(uv, args, { cwd: project, env, detached: process.platform !== 'win32', windowsHide: true })

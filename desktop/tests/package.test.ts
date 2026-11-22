@@ -21,6 +21,11 @@ describe('the Windows installer', () => {
     expect(uv.filter).toEqual(expect.arrayContaining(['uv', 'uv.exe']))
   })
 
+  it('ships Python itself, so the first launch does not have to download it', () => {
+    expect(config.build.win.extraResources).toEqual([{ from: 'vendor/python', to: 'python' }])
+    expect(config.scripts.dist).toContain('npm run python')
+  })
+
   it('installs for the current user, without asking for administrator rights', () => {
     expect(config.build.nsis.perMachine).toBe(false)
   })

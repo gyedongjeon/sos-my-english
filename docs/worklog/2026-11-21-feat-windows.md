@@ -66,3 +66,8 @@ Make a Windows version of the app as well.
 - The message now depends on the failure: no microphone found, access turned off in the system's privacy settings, the microphone held by another app, or the failure's name for anything else. All four screens that record use it.
 - The cause on the trial machine is not known yet; the new message is what will tell.
 - When the system itself refuses the microphone, the app now shows a dialog that offers to open the microphone page of the system settings (Windows never asks for a desktop app; macOS asks once). Not seen running yet: it needs a machine where access is turned off.
+
+### Follow-up: the Windows installer ships Python
+- The trial was repeated with an empty data folder and failed the same way: inside the app, uv's download of Python stopped at about 3 MB and timed out, four attempts in a row, on three launches. The same uv fetched the same file from a command prompt in 18 seconds, and the packages (from another host) came down inside the app without trouble. Why it stalls there is not known.
+- The Windows installer now holds the pinned Python (`resources/python`, fetched at build time by `scripts/fetch-python.mjs`), and the app tells uv to use it and to download none. The macOS app is unchanged and still fetches its Python.
+- Checked on macOS that uv builds the environment on a Python moved to another folder and named by `UV_PYTHON`. The Windows CI job now starts the server on the shipped Python and checks that the unpacked installer holds it.

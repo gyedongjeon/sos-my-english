@@ -57,7 +57,7 @@ Use version 0.1.1 or later: 0.1.0 does not start.
    only and needs no administrator rights.
 2. The installer is not signed, so Windows shows "Windows protected your PC". Choose
    **More info**, then **Run anyway**.
-3. The first launch downloads Python and the Python packages, and then the speech models, as
+3. The first launch downloads the Python packages (Python itself comes with the installer), and then the speech models, as
    on macOS. Allow microphone access for desktop apps in Windows' privacy settings if the app
    cannot hear you.
 

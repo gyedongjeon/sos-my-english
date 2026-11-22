@@ -54,6 +54,22 @@ describe('backendLaunch', () => {
   })
 })
 
+describe('backendLaunch with a Python shipped in the app', () => {
+  const python = 'C:\\Programs\\sos\\resources\\python\\python.exe'
+
+  it('runs on that Python and downloads none, so the first launch does not depend on that download', () => {
+    const { env } = backendLaunch({ ...options, python })
+    expect(env.UV_PYTHON).toBe(python)
+    expect(env.UV_PYTHON_DOWNLOADS).toBe('never')
+  })
+
+  it('lets uv fetch the pinned Python where none is shipped', () => {
+    const { env } = backendLaunch(options)
+    expect(env.UV_PYTHON).toBeUndefined()
+    expect(env.UV_PYTHON_DOWNLOADS).toBeUndefined()
+  })
+})
+
 describe('stopCommand', () => {
   it('ends the whole process tree on Windows, where uv and the Python server are separate processes', () => {
     expect(stopCommand('win32', 4321)).toEqual({ command: 'taskkill', args: ['/pid', '4321', '/T', '/F'] })

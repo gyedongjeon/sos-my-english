@@ -10,14 +10,21 @@ export interface BackendOptions {
   userData: string | null
   port: number
   env: NodeJS.ProcessEnv
+  /** The Python shipped inside the app, where there is one; otherwise uv downloads it. */
+  python?: string | null
 }
 
-export function backendLaunch({ project, frontend, userData, port, env }: BackendOptions) {
+export function backendLaunch({ project, frontend, userData, port, env, python }: BackendOptions) {
   const launchEnv: NodeJS.ProcessEnv = {
     ...env,
     SOS_MY_ENGLISH_FRONTEND_DIST: frontend,
     // Keep Python from writing bytecode into the app bundle.
     PYTHONDONTWRITEBYTECODE: '1',
+  }
+  if (python) {
+    // Shipped with the Windows app: on a first trial there, downloading Python stalled every time.
+    launchEnv.UV_PYTHON = python
+    launchEnv.UV_PYTHON_DOWNLOADS = 'never'
   }
   const args = ['run', '--project', project]
   if (userData) {
