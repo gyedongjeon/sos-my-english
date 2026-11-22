@@ -18,8 +18,6 @@ export function backendLaunch({ project, frontend, userData, port, env, python }
   const launchEnv: NodeJS.ProcessEnv = {
     ...env,
     SOS_MY_ENGLISH_FRONTEND_DIST: frontend,
-    // Keep Python from writing bytecode into the app bundle.
-    PYTHONDONTWRITEBYTECODE: '1',
   }
   if (python) {
     // Shipped with the Windows app: on a first trial there, downloading Python stalled every time.
@@ -35,9 +33,15 @@ export function backendLaunch({ project, frontend, userData, port, env, python }
     // the home folder; here, removing the app's folder removes everything the app put on disk.
     launchEnv.UV_CACHE_DIR = join(userData, 'uv-cache')
     launchEnv.UV_PYTHON_INSTALL_DIR = join(userData, 'python')
+    // Python's compiled files go here too, not into the app bundle, which must stay unchanged.
+    // Without them every launch compiles the packages again, which takes seconds.
+    launchEnv.PYTHONPYCACHEPREFIX = join(userData, 'pycache')
     // The packaged app needs only what runs the server, not the test tools.
     args.push('--frozen', '--no-dev')
     // uv installs the Python named in the project's .python-version, which ships with the app.
+  } else {
+    // Keep a checkout free of compiled files.
+    launchEnv.PYTHONDONTWRITEBYTECODE = '1'
   }
   args.push('uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(port))
   return { args, env: launchEnv }

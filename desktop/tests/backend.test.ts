@@ -20,7 +20,13 @@ describe('backendLaunch', () => {
     const { env } = backendLaunch(options)
     expect(env.PATH).toBe('/usr/bin')
     expect(env.SOS_MY_ENGLISH_FRONTEND_DIST).toBe('/App/Resources/frontend')
-    expect(env.PYTHONDONTWRITEBYTECODE).toBe('1')
+  })
+
+  it('keeps compiled Python in the packaged app\'s folder, so later launches need not compile it again', () => {
+    const { env } = backendLaunch(options)
+    expect(env.PYTHONPYCACHEPREFIX).toBe('/Users/me/Library/Application Support/SOS My English/pycache')
+    // Compiled files are still written, but not into the app bundle, which must stay unchanged.
+    expect(env.PYTHONDONTWRITEBYTECODE).toBeUndefined()
   })
 
   it('keeps the packaged app\'s data and Python packages in its own folder, without the test tools', () => {
@@ -48,6 +54,8 @@ describe('backendLaunch', () => {
     expect(env.UV_PROJECT_ENVIRONMENT).toBeUndefined()
     expect(env.UV_CACHE_DIR).toBeUndefined()
     expect(env.UV_PYTHON_INSTALL_DIR).toBeUndefined()
+    expect(env.PYTHONPYCACHEPREFIX).toBeUndefined()
+    expect(env.PYTHONDONTWRITEBYTECODE).toBe('1')
     expect(args).not.toContain('--frozen')
     expect(args).not.toContain('--no-dev')
     expect(args).not.toContain('--python')
