@@ -75,6 +75,9 @@ export function useYouTubePlayer(element: Ref<HTMLElement | null>) {
     if (!now || time.value < now.end) return
     if (now.repeat) player.seekTo(now.start, true)
     else {
+      // Stopped right away: YouTube reports the pause a moment later, and until then the
+      // video would count as playing on into the next sentence.
+      playing.value = false
       part.value = null
       player.pauseVideo()
     }
