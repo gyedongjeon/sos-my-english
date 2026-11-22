@@ -17,9 +17,10 @@ interface Checked {
   practiced: number
 }
 
-/** Where a correction comes from: its conversation or its pattern. */
+/** Where a correction comes from: its conversation, its pattern, or its sentence in a video. */
 export function source(c: SavedCorrection): RouteLocationRaw {
   if (c.pattern_id !== null) return { name: 'pattern', params: { id: c.pattern_id } }
+  if (c.video !== null) return { name: 'video', params: { id: c.video }, query: { line: c.position ?? 0 } }
   return { name: 'conversation', params: { id: c.conversation_id } }
 }
 

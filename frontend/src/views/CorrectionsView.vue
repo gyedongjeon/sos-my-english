@@ -5,7 +5,7 @@ import { micProblem, useRecorder } from '../composables/useRecorder'
 import { useSpeech } from '../composables/useSpeech'
 import { source, useCorrectionsStore } from '../stores/corrections'
 
-// Every correction from the saved conversations, to practise by saying the better sentence aloud.
+// Every correction from the saved conversations, pattern practice, and shadowing, to practise by saying the better sentence aloud.
 const store = useCorrectionsStore()
 const speech = useSpeech()
 const recorder = useRecorder()
@@ -62,8 +62,8 @@ onBeforeUnmount(() => {
   <main class="mx-auto max-w-3xl p-4 sm:p-6">
     <h1 class="text-2xl font-semibold">Corrections</h1>
     <p class="text-sm text-base-content/70">
-      The fixes from your conversations and the sentences you got wrong in pattern practice. Listen to the better
-      sentence, then say it yourself until it comes out right.
+      The fixes from your conversations, the sentences you got wrong in pattern practice, and the sentences of a video
+      you did not say right after it. Listen to the better sentence, then say it yourself until it comes out right.
     </p>
 
     <div v-if="store.loading" class="flex justify-center py-16">
@@ -74,7 +74,7 @@ onBeforeUnmount(() => {
 
       <div v-if="!store.items.length && !store.error" class="card card-border mt-4 bg-base-100">
         <div class="card-body items-start">
-          <p>No corrections yet. They appear here as you get them in a conversation or in pattern practice.</p>
+          <p>No corrections yet. They appear here as you get them in a conversation, in pattern practice, or saying a video's sentences after it.</p>
           <RouterLink class="btn btn-primary btn-sm" :to="{ name: 'home' }">Pick a topic</RouterLink>
         </div>
       </div>
