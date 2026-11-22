@@ -50,3 +50,6 @@ Make a Windows version of the app as well.
 - **Not verified: the installed app on a Windows machine.** Nobody has opened it. Unchecked
   in particular: the installer itself, the window and its menu, the microphone, the voice,
   closing the app (that the server stops), the update notice, and uninstalling.
+
+### Follow-up: installer kept as a CI artifact
+- The Windows CI job now uploads the installer it builds (`windows-installer`, kept 7 days), so it can be tried on a real machine before a release.

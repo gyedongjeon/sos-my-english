@@ -133,3 +133,10 @@ jobs:
           npm run dist --prefix desktop -- --publish never
           ls -l desktop/release/*.exe
 
+      # Kept for a few days so the installer can be tried on a real machine before a release.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: desktop/release/*.exe
+          retention-days: 7
+          compression-level: 0
