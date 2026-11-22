@@ -31,6 +31,8 @@ export const useVideosStore = defineStore('videos', {
     // A video's sentences in the learner's language by line id, and the video they belong to.
     translations: {} as Record<number, string>,
     translatedFor: null as number | null,
+    // How many of its sentences are still without a translation; asking again tries them again.
+    untranslated: 0,
     translating: false,
     translateError: '',
   }),
@@ -129,15 +131,20 @@ export const useVideosStore = defineStore('videos', {
     },
 
     /** Has a video's sentences translated into the learner's language; they are kept by the
-     * backend, so only the first time takes the model's time. */
+     * backend, so only the first time takes the model's time. Asked again for the same video,
+     * the translations already there stay shown while the missing ones are written. */
     async translate(id: number) {
+      if (this.translatedFor !== id) this.translations = {}
       this.translatedFor = id
-      this.translations = {}
+      this.untranslated = 0
       this.translateError = ''
       this.translating = true
       try {
         const found = await api<VideoTranslation>(`/videos/${id}/translations`, { method: 'POST' })
-        if (this.translatedFor === id) this.translations = Object.fromEntries(found.lines.map((l) => [l.line, l.text]))
+        if (this.translatedFor === id) {
+          this.translations = Object.fromEntries(found.lines.map((l) => [l.line, l.text]))
+          this.untranslated = found.missing
+        }
       } catch (e) {
         if (this.translatedFor === id) this.translateError = (e as Error).message
       } finally {

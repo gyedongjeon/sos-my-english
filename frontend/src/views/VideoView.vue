@@ -333,6 +333,14 @@ onBeforeUnmount(() => recorder.release())
           {{ videos.translateError }}
           <button class="btn btn-sm" @click="video && videos.translate(video.id)">Try again</button>
         </div>
+        <div
+          v-else-if="videos.showTranslation && videos.translatedFor === video.id && videos.untranslated"
+          role="status"
+          class="alert alert-warning alert-soft mt-2"
+        >
+          {{ videos.untranslated }} {{ videos.untranslated === 1 ? 'sentence' : 'sentences' }} could not be translated.
+          <button class="btn btn-sm" @click="videos.translate(video.id)">Try again</button>
+        </div>
 
         <div v-if="marking !== null" class="mt-2 rounded-box bg-base-100 p-3 text-sm">
           <template v-if="made">

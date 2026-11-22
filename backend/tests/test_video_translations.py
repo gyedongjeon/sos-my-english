@@ -63,6 +63,7 @@ def test_every_sentence_is_translated_into_the_feedback_language(client, youtube
     assert response.json() == {
         "language": "Korean",
         "lines": [{"line": line["id"], "text": f"Korean: {line['text']}"} for line in video["lines"]],
+        "missing": 0,
     }
     system, user = model.calls[0]
     # The title helps with what the sentences are about.
@@ -115,6 +116,59 @@ def test_a_sentence_left_out_by_the_model_is_asked_for_next_time(client, youtube
     assert len(translate(client, video).json()["lines"]) == 3
     # Only the missing sentence was sent.
     assert re.findall(r"^\[(\d+)\]", model.calls[0][1], flags=re.MULTILINE) == [str(first["id"])]
+
+
+def test_a_part_that_failed_is_asked_for_again_at_once(client, youtube, model, monkeypatch):
+    client.put("/api/settings", json={"feedback_language": "Korean"})
+    youtube.speech = [Snippet(i * 3.0, 3.0, f"This is sentence number {i}.") for i in range(2 * translations.CHUNK + 5)]
+    video = add(client)
+    failed = []
+
+    def second_part_fails_once(system, user, **params):
+        if "number 40." in user and not failed:
+            failed.append(user)
+            raise LLMError("The request timed out.")
+        return model(system, user, **params)
+
+    monkeypatch.setattr(translations, "complete", second_part_fails_once)
+    found = translate(client, video).json()
+    assert len(found["lines"]) == len(video["lines"]) and found["missing"] == 0
+
+
+def test_a_sentence_left_out_by_the_model_is_asked_for_again_at_once(client, youtube, model, monkeypatch):
+    client.put("/api/settings", json={"feedback_language": "Korean"})
+    video = add(client)
+    first = video["lines"][0]
+
+    def skip_the_first_once(system, user, **params):
+        reply = json.loads(model(system, user, **params))
+        if len(model.calls) == 1:
+            reply["translations"] = [t for t in reply["translations"] if t["id"] != first["id"]]
+        return json.dumps(reply)
+
+    monkeypatch.setattr(translations, "complete", skip_the_first_once)
+    found = translate(client, video).json()
+    assert len(found["lines"]) == 3 and found["missing"] == 0
+    # The second request asked only for the sentence left out.
+    assert re.findall(r"^\[(\d+)\]", model.calls[1][1], flags=re.MULTILINE) == [str(first["id"])]
+
+
+def test_sentences_still_not_translated_are_counted(client, youtube, model, monkeypatch):
+    client.put("/api/settings", json={"feedback_language": "Korean"})
+    youtube.speech = [Snippet(i * 3.0, 3.0, f"This is sentence number {i}.") for i in range(2 * translations.CHUNK + 5)]
+    video = add(client)
+
+    def second_part_always_fails(system, user, **params):
+        if "number 40." in user:
+            raise LLMError("The request timed out.")
+        return model(system, user, **params)
+
+    monkeypatch.setattr(translations, "complete", second_part_always_fails)
+    response = translate(client, video)
+    # What was translated is shown, and the rest is counted so it can be asked for again.
+    assert response.status_code == 200
+    found = response.json()
+    assert len(found["lines"]) == translations.CHUNK + 5 and found["missing"] == translations.CHUNK
 
 
 def test_a_translation_that_cannot_be_written_is_reported(client, youtube, monkeypatch):
