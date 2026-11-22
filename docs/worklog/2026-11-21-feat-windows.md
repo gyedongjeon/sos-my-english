@@ -56,5 +56,7 @@ Make a Windows version of the app as well.
 
 ### Follow-up: the first launch shows what it is doing
 - Reported on 2026-11-22 from a first try of the installer in a Windows virtual machine: the waiting screen stayed up with no sign of whether the setup was slow or stuck.
-- The waiting screen now shows the last line the backend wrote (for example the package being downloaded), and the packaged app keeps that output in `backend.log` in its data folder.
-- Checked on macOS with a stand-in for uv that prints two lines: the screen showed the second one. The cause of the long wait in the virtual machine is not known yet.
+- The waiting screen now shows a progress bar and the step in words ("Downloading Python…", "Downloading packages… 120 of 310 MB", "Installing packages…", "Starting…"). The bar follows the size of the downloads uv names, so it is an estimate; later launches only say "Starting…". A first version showed uv's last line as it was, which was replaced after feedback the same day that package names mean little to a user.
+- The packaged app keeps the backend's output in `backend.log` in its data folder.
+- Checked on macOS with a stand-in for uv: the bar and the words followed its lines.
+- In the Windows trial the Python download was retried four times from inside the app and never finished, while the same uv run from a command prompt fetched it in 18 seconds; after that the app went on to the packages. Whether the app or the connection was at fault is not known yet.

@@ -7,7 +7,7 @@ import { mkdir, rm } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { backendLaunch, latestStep, stopCommand } from './backend'
+import { backendLaunch, startupProgress, stopCommand } from './backend'
 import {
   bundlePath,
   download,
@@ -28,8 +28,10 @@ let backend: ChildProcess | null = null
 let backendLog = ''
 let window: BrowserWindow | null = null
 let quitting = false
-// True while the waiting screen is up; it shows what the backend is doing.
-let starting = false
+// While the waiting screen is up: everything the backend has written, which says how far it is.
+let startupLog: string | null = null
+// The bar never moves back, though more downloads may be named after it has started to fill.
+let shown = 0
 
 function paths() {
   if (!app.isPackaged) {
@@ -70,7 +72,7 @@ function startBackend(uv: string, port: number) {
   const keep = (chunk: Buffer) => {
     backendLog = (backendLog + chunk.toString()).slice(-4000)
     file?.write(chunk)
-    if (starting) showStep(latestStep(backendLog))
+    if (startupLog !== null) showProgress((startupLog += chunk.toString()))
   }
   child.stdout?.on('data', keep)
   child.stderr?.on('data', keep)
@@ -83,9 +85,14 @@ function startBackend(uv: string, port: number) {
   backend = child
 }
 
-/** Show under the waiting message what the first launch is doing, such as the package being downloaded. */
-function showStep(step: string) {
-  const script = `document.getElementById('step').textContent = ${JSON.stringify(step)}`
+/** Show on the waiting screen how far the first launch has come. */
+function showProgress(log: string) {
+  const { label, fraction } = startupProgress(log)
+  if (fraction !== null) shown = Math.max(shown, fraction)
+  const width = fraction === null ? null : `${Math.round(shown * 100)}%`
+  const script = `document.getElementById('label').textContent = ${JSON.stringify(label)}
+    document.getElementById('bar').style.visibility = ${JSON.stringify(width ? 'visible' : 'hidden')}
+    document.getElementById('fill').style.width = ${JSON.stringify(width ?? '0')}`
   // The page may be gone by now; then there is nothing to show it on.
   window?.webContents.executeJavaScript(script).catch(() => {})
 }
@@ -122,7 +129,9 @@ const SPLASH = `data:text/html;charset=utf-8,${encodeURIComponent(`<!doctype htm
 <div style="text-align:center"><p style="font-size:14px;letter-spacing:4px;color:#f4541d;margin:0">&middot;&middot;&middot; &ndash;&ndash;&ndash; &middot;&middot;&middot;</p>
 <p style="font-size:28px;color:#14213d;margin:8px 0"><b style="color:#f4541d">SOS</b> My English</p>
 <p>Help is on the way… the first launch sets things up and can take a few minutes.</p>
-<p id="step" style="font:12px ui-monospace,Consolas,monospace;min-height:16px;margin:0"></p></div></body>`)}`
+<div id="bar" style="visibility:hidden;width:320px;height:6px;margin:20px auto 10px;border-radius:3px;background:#e8e2d8;overflow:hidden">
+<div id="fill" style="width:0;height:100%;border-radius:3px;background:#f4541d;transition:width .4s"></div></div>
+<p id="label" style="font-size:13px;min-height:18px;margin:0">Starting…</p></div></body>`)}`
 
 // --- Updates --------------------------------------------------------------------------
 // The app is not signed with an Apple developer certificate, so the standard updater cannot be
@@ -291,13 +300,13 @@ async function main() {
 
   const port = await freePort()
   const url = `http://127.0.0.1:${port}`
-  starting = true
+  startupLog = ''
   startBackend(uv, port)
   try {
     await waitForBackend(url)
-    starting = false
+    startupLog = null
   } catch (e) {
-    starting = false
+    startupLog = null
     if (quitting) return
     quitting = true
     stopBackend()
