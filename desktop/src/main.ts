@@ -2,12 +2,13 @@
 // it in a window. The backend is stopped when the app quits.
 import { app, BrowserWindow, dialog, Menu, session, shell, systemPreferences } from 'electron'
 import { type ChildProcess, spawn } from 'node:child_process'
-import { accessSync, constants, createWriteStream, existsSync, mkdirSync } from 'node:fs'
+import { accessSync, constants, createWriteStream, existsSync, mkdirSync, renameSync } from 'node:fs'
 import { mkdir, rm } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { backendLaunch, microphoneSettings, startupProgress, stopCommand } from './backend'
+import { legacyDataMove } from './legacy'
 import {
   bundlePath,
   download,
@@ -63,6 +64,18 @@ function freePort(): Promise<number> {
   })
 }
 
+/** Bring over the data of the app from when it was called "SOS My English", once. */
+function adoptLegacyData(userData: string) {
+  const move = legacyDataMove({ appData: app.getPath('appData'), userData, exists: existsSync })
+  if (!move) return
+  try {
+    renameSync(move.from, move.to)
+  } catch (e) {
+    // The app still works, only without the old data, which stays where it was.
+    console.error(`Could not move ${move.from} to ${move.to}: ${(e as Error).message}`)
+  }
+}
+
 function startBackend(uv: string, port: number) {
   const { project, frontend, userData, python } = paths()
   const { args, env } = backendLaunch({ project, frontend, userData, port, env: process.env, python })
@@ -73,6 +86,7 @@ function startBackend(uv: string, port: number) {
   let file: ReturnType<typeof createWriteStream> | null = null
   if (userData) {
     mkdirSync(userData, { recursive: true })
+    adoptLegacyData(userData)
     file = createWriteStream(join(userData, 'backend.log'))
     file.on('error', () => (file = null))
   }
