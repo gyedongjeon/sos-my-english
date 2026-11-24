@@ -74,11 +74,6 @@ Everything the installed app puts on disk is in one folder,
 - `data/` — your conversations, settings, and the speech models
 - `venv/`, `uv-cache/`, `python/` — the Python packages and Python itself, set up on the first launch
 
-The app used to be called SOS My English. On its first launch it moves `data/` from the old
-app's folder (`SOS My English/`) into its own; after that, the old app and the rest of its
-folder can be deleted. The old app cannot update itself into the renamed one, so install the
-renamed one from the release page.
-
 To back up or move your conversations, copy `data/`. Nothing is written to shared caches such
 as `~/.cache`. Deleting the app leaves this folder in
 place, so to uninstall completely, move the app to the Trash and then delete that folder.
