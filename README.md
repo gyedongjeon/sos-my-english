@@ -1,16 +1,16 @@
-# SOS My English
+# SOS My Language
 
 **English** | [한국어](README.ko.md)
 
-[![Release](https://img.shields.io/github/v/release/gyedongjeon/sos-my-english)](https://github.com/gyedongjeon/sos-my-english/releases/latest)
-[![CI](https://github.com/gyedongjeon/sos-my-english/actions/workflows/ci.yml/badge.svg)](https://github.com/gyedongjeon/sos-my-english/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/gyedongjeon/sos-my-language)](https://github.com/gyedongjeon/sos-my-language/releases/latest)
+[![CI](https://github.com/gyedongjeon/sos-my-language/actions/workflows/ci.yml/badge.svg)](https://github.com/gyedongjeon/sos-my-language/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 Stuck for words? An app for practising **spoken English**, running on your own machine. Pick a
 topic, talk it through out loud with an AI partner that answers by voice, and get your English
 fixed as you go.
 
-![A conversation in SOS My English: what you said, its correction, and your partner's next line](docs/images/practice.png)
+![A conversation in SOS My Language: what you said, its correction, and your partner's next line](docs/images/practice.png)
 
 Part of the SOS series, next to [SOS My Interview](https://github.com/gyedongjeon/sos-my-interview).
 
@@ -34,7 +34,7 @@ The app runs locally for a single user; there is no account, server, or deployme
 
 ## Install
 Installers for **Apple Silicon Macs** and **64-bit Windows** are attached to each
-[release](https://github.com/gyedongjeon/sos-my-english/releases/latest).
+[release](https://github.com/gyedongjeon/sos-my-language/releases/latest).
 
 ### macOS
 
@@ -42,7 +42,7 @@ Installers for **Apple Silicon Macs** and **64-bit Windows** are attached to eac
 2. The build is not signed with an Apple developer certificate, so macOS blocks it at first. Run
    this once in Terminal, then open the app:
    ```bash
-   xattr -cr "/Applications/SOS My English.app"
+   xattr -cr "/Applications/SOS My Language.app"
    ```
 3. The first launch downloads Python and the Python packages (~450 MB), so it needs an internet
    connection and can take a few minutes. Allow microphone access when asked.
@@ -53,7 +53,7 @@ Nothing else has to be installed, because the app ships its own [uv](https://doc
 Use version 0.1.1 or later: 0.1.0 does not start.
 
 ### Windows
-1. Download `SOS-My-English-Setup-<version>.exe` and run it. It installs for your user account
+1. Download `SOS-My-Language-Setup-<version>.exe` and run it. It installs for your user account
    only and needs no administrator rights.
 2. The installer is not signed, so Windows shows "Windows protected your PC". Choose
    **More info**, then **Run anyway**.
@@ -69,7 +69,7 @@ On Intel Macs and Linux there is no installer yet; [run it from source](#run-fro
 
 ### Where files are kept, and uninstalling
 Everything the installed app puts on disk is in one folder,
-`~/Library/Application Support/SOS My English/` (on Windows, `%APPDATA%\SOS My English\`):
+`~/Library/Application Support/SOS My Language/` (on Windows, `%APPDATA%\SOS My Language\`):
 
 - `data/` — your conversations, settings, and the speech models
 - `venv/`, `uv-cache/`, `python/` — the Python packages and Python itself, set up on the first launch
@@ -81,7 +81,7 @@ place, so to uninstall completely, move the app to the Trash and then delete tha
 ### Updates
 The installed app asks GitHub for the latest release when it starts. When there is a newer one,
 it offers to update: one click downloads it, replaces the app, and opens it again, with your
-settings kept. You can also choose **SOS My English → Check for Updates…**.
+settings kept. You can also choose **SOS My Language → Check for Updates…**.
 
 - The download is checked against the SHA-256 that GitHub reports for the release file, and only
   files from this repository's releases are accepted. The app is not signed by Apple, so that
@@ -95,7 +95,7 @@ settings kept. You can also choose **SOS My English → Check for Updates…**.
 ## First setup
 The app opens on the Settings page the first time.
 
-![The home page of SOS My English, with the list of topics](docs/images/home.png)
+![The home page of SOS My Language, with the list of topics](docs/images/home.png)
 
 1. **Feedback language**: pick the language your corrections are explained in. It starts from
    your system language.
@@ -289,7 +289,7 @@ The desktop app is an Electron window that starts and stops the backend for you.
 cd desktop
 npm install
 npm run dev    # run from this checkout, using backend/data
-npm run dist   # build desktop/release/SOS My English-<version>-arm64.dmg
+npm run dist   # build desktop/release/SOS My Language-<version>-arm64.dmg
 ```
 
 `npm run dist` first downloads the uv release pinned in `desktop/scripts/fetch-uv.mjs` (checked
@@ -297,7 +297,7 @@ against its SHA-256) into `desktop/vendor/`, to bundle it into the app, so the b
 nothing else installed. Releases are built and published by GitHub Actions when a version tag is
 pushed; see [docs/git-workflow/versioning.md](docs/git-workflow/versioning.md).
 
-The packaged app keeps its files in `~/Library/Application Support/SOS My English/`; see
+The packaged app keeps its files in `~/Library/Application Support/SOS My Language/`; see
 [Where files are kept, and uninstalling](#where-files-are-kept-and-uninstalling).
 
 ## Tests

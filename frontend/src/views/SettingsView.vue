@@ -279,7 +279,7 @@ onMounted(async () => {
         <div>
           <h2 class="card-title">Open source</h2>
           <p class="text-sm text-base-content/70">
-            SOS My English is open source under the MIT License. It is built with the work below.
+            SOS My Language is open source under the MIT License. It is built with the work below.
           </p>
         </div>
         <ul class="list">

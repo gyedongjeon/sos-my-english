@@ -1,6 +1,6 @@
 # Agent Instructions
 
-This file provides specific context and operational rules for AI assistants working within the `sos-my-english` project.
+This file provides specific context and operational rules for AI assistants working within the `sos-my-language` project.
 
 ## Core Directives
 - **Source of Truth**: Always refer to the following documents for project rules and conventions:
@@ -44,7 +44,7 @@ Follow Kent Beck's Test-Driven Development and Tidy First.
 - Never modify another branch's worklog file.
 
 ## Project Mission
-- **Project**: `sos-my-english` — a speaking-first English practice app for personal use: the learner talks with an AI partner by voice and gets corrections. It is a sibling of `sos-my-interview` in the SOS series and shares its stack, look, and conventions.
+- **Project**: `sos-my-language` — a speaking-first English practice app for personal use: the learner talks with an AI partner by voice and gets corrections. It is a sibling of `sos-my-interview` in the SOS series and shares its stack, look, and conventions.
 - **Architecture**: Separate frontend and backend.
     - **Backend**: FastAPI (Python) with SQLite as the database.
     - **Frontend**: Vue 3 + TypeScript + Vite, with Vue Router and Pinia. Styling uses Tailwind CSS with daisyUI as the design system; prefer daisyUI component classes and theme colors over custom CSS.

@@ -6,9 +6,9 @@ import tempfile
 from pathlib import Path
 
 # The app reads these when it is imported, so they are set before any `app` import.
-_ROOT = Path(tempfile.mkdtemp(prefix="sos-my-english-tests-"))
-os.environ["SOS_MY_ENGLISH_DATA_DIR"] = str(_ROOT / "data")
-os.environ["SOS_MY_ENGLISH_FRONTEND_DIST"] = str(_ROOT / "dist")
+_ROOT = Path(tempfile.mkdtemp(prefix="sos-my-language-tests-"))
+os.environ["SOS_MY_LANGUAGE_DATA_DIR"] = str(_ROOT / "data")
+os.environ["SOS_MY_LANGUAGE_FRONTEND_DIST"] = str(_ROOT / "dist")
 # LiteLLM loads a `.env` file from the working folder when it is imported, unless it is told it
 # runs in production. Tests must not depend on what a developer keeps in `backend/.env`.
 os.environ["LITELLM_MODE"] = "PRODUCTION"

@@ -2049,7 +2049,7 @@ wheels = [
 ]
 
 [[package]]
-name = "sos-my-english-backend"
+name = "sos-my-language-backend"
 version = "0.8.1"
 source = { virtual = "." }
 dependencies = [
